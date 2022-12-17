@@ -5,7 +5,7 @@
 # Default to the current version number for building the plugin library
 
 if [  -z "$TW5_BUILD_VERSION" ]; then
-    TW5_BUILD_VERSION=v5.1.19
+    TW5_BUILD_VERSION=v5.2.5
 fi
 
 echo "Using TW5_BUILD_VERSION as [$TW5_BUILD_VERSION]"
@@ -33,6 +33,12 @@ if [  -z "$TW5_BUILD_DETAILS" ]; then
 fi
 
 echo "Using TW5_BUILD_DETAILS as [$TW5_BUILD_DETAILS]"
+
+if [  -z "$TW5_BUILD_COMMIT" ]; then
+	TW5_BUILD_COMMIT="$(git rev-parse HEAD)"
+fi
+
+echo "Using TW5_BUILD_COMMIT as [$TW5_BUILD_COMMIT]"
 
 # Set up the build output directory
 
@@ -74,7 +80,7 @@ echo "<a href='./plugins/tiddlywiki/tahoelafs/index.html'>Moved to http://tiddly
 
 # Put the build details into a .tid file so that it can be included in each build (deleted at the end of this script)
 
-echo -e -n "title: $:/build\n\n$TW5_BUILD_DETAILS\n" > $TW5_BUILD_OUTPUT/build.tid
+echo -e -n "title: $:/build\ncommit: $TW5_BUILD_COMMIT\n\n$TW5_BUILD_DETAILS\n" > $TW5_BUILD_OUTPUT/build.tid
 
 ######################################################
 #
@@ -101,7 +107,7 @@ node $TW5_BUILD_TIDDLYWIKI \
 # /empty.html			Empty
 # /empty.hta			For Internet Explorer
 node $TW5_BUILD_TIDDLYWIKI \
-	./editions/empty \
+	$TW5_BUILD_MAIN_EDITION \
 	--verbose \
 	--output $TW5_BUILD_OUTPUT \
 	--build empty \
@@ -128,6 +134,15 @@ node $TW5_BUILD_TIDDLYWIKI \
 	--load $TW5_BUILD_OUTPUT/build.tid \
 	--output $TW5_BUILD_OUTPUT/dev \
 	--build index favicon static \
+	|| exit 1
+
+# /share.html				Custom edition for sharing via the URL
+node $TW5_BUILD_TIDDLYWIKI \
+	./editions/share \
+	--verbose \
+	--load $TW5_BUILD_OUTPUT/build.tid \
+	--output $TW5_BUILD_OUTPUT \
+	--build share \
 	|| exit 1
 
 # /upgrade.html				Custom edition for performing upgrades
@@ -218,11 +233,30 @@ node $TW5_BUILD_TIDDLYWIKI \
 	--build index \
 	|| exit 1
 
+# /editions/twitter-archivist/index.html	Twitter Archivist edition
+node $TW5_BUILD_TIDDLYWIKI \
+	./editions/twitter-archivist \
+	--verbose \
+	--load $TW5_BUILD_OUTPUT/build.tid \
+	--output $TW5_BUILD_OUTPUT/editions/twitter-archivist/ \
+	--build index \
+	|| exit 1
+
 ######################################################
 #
 # Plugin demos
 #
 ######################################################
+
+# /plugins/tiddlywiki/innerwiki/index.html	Demo wiki with Innerwiki plugin
+
+node $TW5_BUILD_TIDDLYWIKI \
+	./editions/innerwikidemo \
+	--verbose \
+	--load $TW5_BUILD_OUTPUT/build.tid \
+	--output $TW5_BUILD_OUTPUT \
+	--rendertiddler $:/core/save/all plugins/tiddlywiki/innerwiki/index.html text/plain \
+	|| exit 1
 
 # /plugins/tiddlywiki/dynaview/index.html	Demo wiki with DynaView plugin
 # /plugins/tiddlywiki/dynaview/empty.html	Empty wiki with DynaView plugin
@@ -425,7 +459,7 @@ node $TW5_BUILD_TIDDLYWIKI \
 	--verbose \
 	--load $TW5_BUILD_OUTPUT/build.tid \
 	--output $TW5_BUILD_OUTPUT/library/$TW5_BUILD_VERSION \
-	--build \
+	--build library\
 	|| exit 1
 
 # Delete the temporary build tiddler
