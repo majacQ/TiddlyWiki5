@@ -111,7 +111,7 @@ exports.deleteTextReference = function(textRef,currTiddlerTitle) {
 exports.addEventListener = function(type,listener) {
 	this.eventListeners = this.eventListeners || {};
 	this.eventListeners[type] = this.eventListeners[type]  || [];
-	this.eventListeners[type].push(listener);	
+	this.eventListeners[type].push(listener);
 };
 
 exports.removeEventListener = function(type,listener) {
@@ -190,15 +190,25 @@ exports.getChangeCount = function(title) {
 
 /*
 Generate an unused title from the specified base
+options.prefix must be a string
 */
 exports.generateNewTitle = function(baseTitle,options) {
 	options = options || {};
 	var c = 0,
-		title = baseTitle;
-	while(this.tiddlerExists(title) || this.isShadowTiddler(title) || this.findDraft(title)) {
-		title = baseTitle + 
-			(options.prefix || " ") + 
-			(++c);
+		title = baseTitle,
+		template = options.template,
+		prefix = (typeof(options.prefix) === "string") ? options.prefix : " ";
+	if (template) {
+		// "count" is important to avoid an endless loop in while(...)!!
+		template = (/\$count:?(\d+)?\$/i.test(template)) ? template : template + "$count$";
+		title = $tw.utils.formatTitleString(template,{"base":baseTitle,"separator":prefix,"counter":c});
+		while(this.tiddlerExists(title) || this.isShadowTiddler(title) || this.findDraft(title)) {
+			title = $tw.utils.formatTitleString(template,{"base":baseTitle,"separator":prefix,"counter":(++c)});
+		}
+	} else {
+		while(this.tiddlerExists(title) || this.isShadowTiddler(title) || this.findDraft(title)) {
+			title = baseTitle + prefix + (++c);
+		}
 	}
 	return title;
 };
@@ -211,9 +221,13 @@ exports.isTemporaryTiddler = function(title) {
 	return title && title.indexOf("$:/temp/") === 0;
 };
 
+exports.isVolatileTiddler = function(title) {
+	return title && title.indexOf("$:/temp/volatile/") === 0;
+};
+
 exports.isImageTiddler = function(title) {
 	var tiddler = this.getTiddler(title);
-	if(tiddler) {		
+	if(tiddler) {
 		var contentTypeInfo = $tw.config.contentTypeInfo[tiddler.fields.type || "text/vnd.tiddlywiki"];
 		return !!contentTypeInfo && contentTypeInfo.flags.indexOf("image") !== -1;
 	} else {
@@ -223,7 +237,7 @@ exports.isImageTiddler = function(title) {
 
 exports.isBinaryTiddler = function(title) {
 	var tiddler = this.getTiddler(title);
-	if(tiddler) {		
+	if(tiddler) {
 		var contentTypeInfo = $tw.config.contentTypeInfo[tiddler.fields.type || "text/vnd.tiddlywiki"];
 		return !!contentTypeInfo && contentTypeInfo.encoding === "base64";
 	} else {
@@ -364,12 +378,12 @@ exports.sortTiddlers = function(titles,sortField,isDescending,isCaseSensitive,is
 			var tiddlerA = self.getTiddler(a),
 				tiddlerB = self.getTiddler(b);
 			if(tiddlerA) {
-				a = tiddlerA.fields[sortField] || "";
+				a = tiddlerA.getFieldString(sortField) || "";
 			} else {
 				a = "";
 			}
 			if(tiddlerB) {
-				b = tiddlerB.fields[sortField] || "";
+				b = tiddlerB.getFieldString(sortField) || "";
 			} else {
 				b = "";
 			}
@@ -378,10 +392,10 @@ exports.sortTiddlers = function(titles,sortField,isDescending,isCaseSensitive,is
 		y = Number(b);
 		if(isNumeric && (!isNaN(x) || !isNaN(y))) {
 			return compareNumbers(x,y);
-		} else if(isAlphaNumeric) {
-			return isDescending ? b.localeCompare(a,undefined,{numeric: true,sensitivity: "base"}) : a.localeCompare(b,undefined,{numeric: true,sensitivity: "base"});
 		} else if($tw.utils.isDate(a) && $tw.utils.isDate(b)) {
 			return isDescending ? b - a : a - b;
+		} else if(isAlphaNumeric) {
+			return isDescending ? b.localeCompare(a,undefined,{numeric: true,sensitivity: "base"}) : a.localeCompare(b,undefined,{numeric: true,sensitivity: "base"});
 		} else {
 			a = String(a);
 			b = String(b);
@@ -415,6 +429,30 @@ exports.forEachTiddler = function(/* [options,]callback */) {
 };
 
 /*
+Return an array of tiddler titles that are directly linked within the given parse tree
+ */
+exports.extractLinks = function(parseTreeRoot) {
+	// Count up the links
+	var links = [],
+		checkParseTree = function(parseTree) {
+			for(var t=0; t<parseTree.length; t++) {
+				var parseTreeNode = parseTree[t];
+				if(parseTreeNode.type === "link" && parseTreeNode.attributes.to && parseTreeNode.attributes.to.type === "string") {
+					var value = parseTreeNode.attributes.to.value;
+					if(links.indexOf(value) === -1) {
+						links.push(value);
+					}
+				}
+				if(parseTreeNode.children) {
+					checkParseTree(parseTreeNode.children);
+				}
+			}
+		};
+	checkParseTree(parseTreeRoot);
+	return links;
+};
+
+/*
 Return an array of tiddler titles that are directly linked from the specified tiddler
 */
 exports.getTiddlerLinks = function(title) {
@@ -423,26 +461,10 @@ exports.getTiddlerLinks = function(title) {
 	return this.getCacheForTiddler(title,"links",function() {
 		// Parse the tiddler
 		var parser = self.parseTiddler(title);
-		// Count up the links
-		var links = [],
-			checkParseTree = function(parseTree) {
-				for(var t=0; t<parseTree.length; t++) {
-					var parseTreeNode = parseTree[t];
-					if(parseTreeNode.type === "link" && parseTreeNode.attributes.to && parseTreeNode.attributes.to.type === "string") {
-						var value = parseTreeNode.attributes.to.value;
-						if(links.indexOf(value) === -1) {
-							links.push(value);
-						}
-					}
-					if(parseTreeNode.children) {
-						checkParseTree(parseTreeNode.children);
-					}
-				}
-			};
 		if(parser) {
-			checkParseTree(parser.tree);
+			return self.extractLinks(parser.tree);
 		}
-		return links;
+		return [];
 	});
 };
 
@@ -451,13 +473,18 @@ Return an array of tiddler titles that link to the specified tiddler
 */
 exports.getTiddlerBacklinks = function(targetTitle) {
 	var self = this,
+		backlinksIndexer = this.getIndexer("BacklinksIndexer"),
+		backlinks = backlinksIndexer && backlinksIndexer.lookup(targetTitle);
+
+	if(!backlinks) {
 		backlinks = [];
-	this.forEachTiddler(function(title,tiddler) {
-		var links = self.getTiddlerLinks(title);
-		if(links.indexOf(targetTitle) !== -1) {
-			backlinks.push(title);
-		}
-	});
+		this.forEachTiddler(function(title,tiddler) {
+			var links = self.getTiddlerLinks(title);
+			if(links.indexOf(targetTitle) !== -1) {
+				backlinks.push(title);
+			}
+		});
+	}
 	return backlinks;
 };
 
@@ -567,7 +594,9 @@ Sorts an array of tiddler titles according to an ordered list
 exports.sortByList = function(array,listTitle) {
 	var self = this,
 		replacedTitles = Object.create(null);
-	function replaceItem(title) {
+	// Given a title, this function will place it in the correct location
+	// within titles.
+	function moveItemInList(title) {
 		if(!$tw.utils.hop(replacedTitles, title)) {
 			replacedTitles[title] = true;
 			var newPos = -1,
@@ -580,26 +609,37 @@ exports.sortByList = function(array,listTitle) {
 				} else if(afterTitle === "") {
 					newPos = titles.length;
 				} else if(beforeTitle) {
-					replaceItem(beforeTitle);
+					// if this title is placed relative
+					// to another title, make sure that
+					// title is placed before we place
+					// this one.
+					moveItemInList(beforeTitle);
 					newPos = titles.indexOf(beforeTitle);
 				} else if(afterTitle) {
-					replaceItem(afterTitle);
+					// Same deal
+					moveItemInList(afterTitle);
 					newPos = titles.indexOf(afterTitle);
 					if(newPos >= 0) {
 						++newPos;
 					}
 				}
-				// We get the currPos //after// figuring out the newPos, because recursive replaceItem calls might alter title's currPos
-				var currPos = titles.indexOf(title);
-				if(newPos === -1) {
-					newPos = currPos;
-				}
-				if(currPos >= 0 && newPos !== currPos) {
-					titles.splice(currPos,1);
-					if(newPos >= currPos) {
-						newPos--;
+				// If a new position is specified, let's move it
+				if (newPos !== -1) {
+					// get its current Pos, and make sure
+					// sure that it's _actually_ in the list
+					// and that it would _actually_ move
+					// (#4275) We don't bother calling
+					//         indexOf unless we have a new
+					//         position to work with
+					var currPos = titles.indexOf(title);
+					if(currPos >= 0 && newPos !== currPos) {
+						// move it!
+						titles.splice(currPos,1);
+						if(newPos >= currPos) {
+							newPos--;
+						}
+						titles.splice(newPos,0,title);
 					}
-					titles.splice(newPos,0,title);
 				}
 			}
 		}
@@ -627,7 +667,7 @@ exports.sortByList = function(array,listTitle) {
 		var sortedTitles = titles.slice(0);
 		for(t=0; t<sortedTitles.length; t++) {
 			title = sortedTitles[t];
-			replaceItem(title);
+			moveItemInList(title);
 		}
 		return titles;
 	}
@@ -660,21 +700,49 @@ exports.getTiddlerAsJson = function(title) {
 	}
 };
 
-exports.getTiddlersAsJson = function(filter,spaces) {
-	var tiddlers = this.filterTiddlers(filter),
-		spaces = (spaces === undefined) ? $tw.config.preferences.jsonSpaces : spaces,
-		data = [];
-	for(var t=0;t<tiddlers.length; t++) {
-		var tiddler = this.getTiddler(tiddlers[t]);
+/*
+Options:
+spaces: number of spaces. The special value -1 results in a line break in between each tiddler
+escapeUnsafeScriptCharacters: true to force escaping of characters that cannot be embedded in HTML
+*/
+exports.getTiddlersAsJson = function(filter,options) {
+	options = options || {};
+	if(typeof options === "string") {
+		options = {spaces: options};
+	}
+	var titles = this.filterTiddlers(filter),
+		spaces = (options.spaces === undefined) ? $tw.config.preferences.jsonSpaces : options.spaces,
+		data = [],
+		t;
+	for(t=0;t<titles.length; t++) {
+		var tiddler = this.getTiddler(titles[t]);
 		if(tiddler) {
-			var fields = new Object();
-			for(var field in tiddler.fields) {
-				fields[field] = tiddler.getFieldString(field);
-			}
-			data.push(fields);
+			data.push(tiddler.getFieldStrings());
 		}
 	}
-	return JSON.stringify(data,null,spaces);
+	var json;
+	if(spaces === -1) {
+		var jsonLines = [];
+		for(t=0;t<data.length; t++) {
+			jsonLines.push(JSON.stringify(data[t]));
+		}
+		json = "[\n" + jsonLines.join(",\n") + "\n]";
+	} else {
+		json = JSON.stringify(data,null,spaces);
+	}
+	if(options.escapeUnsafeScriptCharacters) {
+		function escapeUnsafeChars(unsafeChar) {
+			return {
+				"<":      "\\u003C",
+				">":      "\\u003E",
+				"/":      "\\u002F",
+				"\u2028": "\\u2028",
+				"\u2029": "\\u2029"
+			}[unsafeChar];
+		}
+		json = json.replace(/</g,escapeUnsafeChars);
+	}
+	return json;
 };
 
 /*
@@ -694,7 +762,7 @@ exports.getTiddlerDataCached = function(titleOrTiddler,defaultData) {
 	var self = this,
 		tiddler = titleOrTiddler;
 	if(!(tiddler instanceof $tw.Tiddler)) {
-		tiddler = this.getTiddler(tiddler);	
+		tiddler = this.getTiddler(tiddler);
 	}
 	if(tiddler) {
 		return this.getCacheForTiddler(tiddler.fields.title,"data",function() {
@@ -715,7 +783,7 @@ exports.getTiddlerData = function(titleOrTiddler,defaultData) {
 	var tiddler = titleOrTiddler,
 		data;
 	if(!(tiddler instanceof $tw.Tiddler)) {
-		tiddler = this.getTiddler(tiddler);	
+		tiddler = this.getTiddler(tiddler);
 	}
 	if(tiddler && tiddler.fields.text) {
 		switch(tiddler.fields.type) {
@@ -845,7 +913,7 @@ exports.initParsers = function(moduleType) {
 			if(!$tw.utils.hop($tw.Wiki.parsers,type) && $tw.config.contentTypeInfo[type].encoding === "base64") {
 				$tw.Wiki.parsers[type] = $tw.Wiki.parsers["application/octet-stream"];
 			}
-		});		
+		});
 	}
 };
 
@@ -897,41 +965,57 @@ exports.parseTiddler = function(title,options) {
 };
 
 exports.parseTextReference = function(title,field,index,options) {
-	var tiddler,text;
-	if(options.subTiddler) {
-		tiddler = this.getSubTiddler(title,options.subTiddler);
-	} else {
+	var tiddler,
+		text,
+		parserInfo;
+	if(!options.subTiddler) {
 		tiddler = this.getTiddler(title);
 		if(field === "text" || (!field && !index)) {
 			this.getTiddlerText(title); // Force the tiddler to be lazily loaded
 			return this.parseTiddler(title,options);
 		}
+	} 
+	parserInfo = this.getTextReferenceParserInfo(title,field,index,options);
+	if(parserInfo.sourceText !== null) {
+		return this.parseText(parserInfo.parserType,parserInfo.sourceText,options);
+	} else {
+		return null;
+	}
+};
+
+exports.getTextReferenceParserInfo = function(title,field,index,options) {
+	var tiddler,
+		parserInfo = {
+			sourceText : null,
+			parserType : "text/vnd.tiddlywiki"
+		};
+	if(options.subTiddler) {
+		tiddler = this.getSubTiddler(title,options.subTiddler);
+	} else {
+		tiddler = this.getTiddler(title);
 	}
 	if(field === "text" || (!field && !index)) {
 		if(tiddler && tiddler.fields) {
-			return this.parseText(tiddler.fields.type,tiddler.fields.text,options);			
-		} else {
-			return null;
+			parserInfo.sourceText = tiddler.fields.text || "";
+			if(tiddler.fields.type) {
+				parserInfo.parserType = tiddler.fields.type;
+			}
 		}
 	} else if(field) {
 		if(field === "title") {
-			text = title;
-		} else {
-			if(!tiddler || !tiddler.hasField(field)) {
-				return null;
-			}
-			text = tiddler.fields[field];
+			parserInfo.sourceText = title;
+		} else if(tiddler && tiddler.fields) {
+			parserInfo.sourceText = tiddler.fields[field] ? tiddler.fields[field].toString() : null;
 		}
-		return this.parseText("text/vnd.tiddlywiki",text.toString(),options);
 	} else if(index) {
 		this.getTiddlerText(title); // Force the tiddler to be lazily loaded
-		text = this.extractTiddlerDataItem(tiddler,index,undefined);
-		if(text === undefined) {
-			return null;
-		}
-		return this.parseText("text/vnd.tiddlywiki",text,options);
+		parserInfo.sourceText = this.extractTiddlerDataItem(tiddler,index,null);
 	}
-};
+	if(parserInfo.sourceText === null) {
+		parserInfo.parserType = null;
+	}
+	return parserInfo;
+}
 
 /*
 Make a widget tree for a parse tree
@@ -978,6 +1062,7 @@ title: target tiddler title
 options: as for wiki.makeWidget() plus:
 options.field: optional field to transclude (defaults to "text")
 options.mode: transclusion mode "inline" or "block"
+options.recursionMarker : optional flag to set a recursion marker, defaults to "yes"
 options.children: optional array of children for the transclude widget
 options.importVariables: optional importvariables filter string for macros to be included
 options.importPageMacros: optional boolean; if true, equivalent to passing "[[$:/core/ui/PageMacros]] [all[shadows+tiddlers]tag[$:/tags/Macro]!has[draft.of]]" to options.importVariables
@@ -1001,10 +1086,17 @@ exports.makeTranscludeWidget = function(title,options) {
 		parseTreeTransclude = {
 			type: "transclude",
 			attributes: {
+				recursionMarker: {
+					name: "recursionMarker",
+					type: "string",
+					value: options.recursionMarker || "yes"
+					},
 				tiddler: {
 					name: "tiddler",
 					type: "string",
-					value: title}},
+					value: title
+				}
+			},
 			isBlock: !options.parseAsInline};
 	if(options.importVariables || options.importPageMacros) {
 		if(options.importVariables) {
@@ -1026,7 +1118,7 @@ exports.makeTranscludeWidget = function(title,options) {
 	if(options.children) {
 		parseTreeTransclude.children = options.children;
 	}
-	return $tw.wiki.makeWidget(parseTreeDiv,options);
+	return this.makeWidget(parseTreeDiv,options);
 };
 
 /*
@@ -1109,7 +1201,7 @@ exports.search = function(text,options) {
 		searchTermsRegExps = [new RegExp("(" + anchor + terms.join("\\s+") + ")",flags)];
 	} else if(options.regexp) {
 		try {
-			searchTermsRegExps = [new RegExp("(" + text + ")",flags)];			
+			searchTermsRegExps = [new RegExp("(" + text + ")",flags)];
 		} catch(e) {
 			searchTermsRegExps = null;
 			console.log("Regexp error parsing /(" + text + ")/" + flags + ": ",e);
@@ -1131,7 +1223,7 @@ exports.search = function(text,options) {
 		if($tw.utils.isArray(options.field)) {
 			$tw.utils.each(options.field,function(fieldName) {
 				if(fieldName) {
-					fields.push(fieldName);					
+					fields.push(fieldName);
 				}
 			});
 		} else {
@@ -1208,7 +1300,7 @@ exports.search = function(text,options) {
 	var results = [],
 		source = options.source || this.each;
 	source(function(tiddler,title) {
-		if(searchTiddler(title) !== options.invert) {
+		if(searchTiddler(title) !== invert) {
 			results.push(title);
 		}
 	});
@@ -1336,7 +1428,7 @@ exports.readFileContent = function(file,type,isBinary,deserializer,callback) {
 	// Onload
 	reader.onload = function(event) {
 		var text = event.target.result,
-			tiddlerFields = {title: file.name || "Untitled", type: type};
+			tiddlerFields = {title: file.name || "Untitled"};
 		if(isBinary) {
 			var commaPos = text.indexOf(",");
 			if(commaPos !== -1) {
@@ -1400,7 +1492,8 @@ historyTitle: title of history tiddler (defaults to $:/HistoryList)
 */
 exports.addToHistory = function(title,fromPageRect,historyTitle) {
 	var story = new $tw.Story({wiki: this, historyTitle: historyTitle});
-	story.addToHistory(title,fromPageRect);		
+	story.addToHistory(title,fromPageRect);
+	console.log("$tw.wiki.addToHistory() is deprecated since V5.1.23! Use the this.story.addToHistory() from the story-object!")
 };
 
 /*
@@ -1412,7 +1505,8 @@ options: see story.js
 */
 exports.addToStory = function(title,fromTitle,storyTitle,options) {
 	var story = new $tw.Story({wiki: this, storyTitle: storyTitle});
-	story.addToStory(title,fromTitle,options);		
+	story.addToStory(title,fromTitle,options);
+	console.log("$tw.wiki.addToStory() is deprecated since V5.1.23! Use the this.story.addToStory() from the story-object!")
 };
 
 /*
@@ -1459,6 +1553,13 @@ exports.invokeUpgraders = function(titles,tiddlers) {
 
 // Determine whether a plugin by title is dynamically loadable
 exports.doesPluginRequireReload = function(title) {
+	var tiddler = this.getTiddler(title);
+	if(tiddler && tiddler.fields.type === "application/json" && tiddler.fields["plugin-type"]) {
+		if(tiddler.fields["plugin-type"] === "import") {
+			// The import plugin never requires reloading
+			return false;
+		}
+	}
 	return this.doesPluginInfoRequireReload(this.getPluginInfo(title) || this.getTiddlerDataCached(title));
 };
 
@@ -1477,5 +1578,29 @@ exports.doesPluginInfoRequireReload = function(pluginInfo) {
 	}
 };
 
-})();
+exports.slugify = function(title,options) {
+	var tiddler = this.getTiddler(title),
+		slug;
+	if(tiddler && tiddler.fields.slug) {
+		slug = tiddler.fields.slug;
+	} else {
+		slug = $tw.utils.transliterate(title.toString().toLowerCase()) // Replace diacritics with basic lowercase ASCII
+			.replace(/\s+/g,"-")                                       // Replace spaces with -
+			.replace(/[^\w\-\.]+/g,"")                                 // Remove all non-word chars except dash and dot
+			.replace(/\-\-+/g,"-")                                     // Replace multiple - with single -
+			.replace(/^-+/,"")                                         // Trim - from start of text
+			.replace(/-+$/,"");                                        // Trim - from end of text
+	}
+	// If the resulting slug is blank (eg because the title is just punctuation characters)
+	if(!slug) {
+		// ...then just use the character codes of the title
+		var result = [];
+		$tw.utils.each(title.split(""),function(char) {
+			result.push(char.charCodeAt(0).toString());
+		});
+		slug = result.join("-");
+	}
+	return slug;
+};
 
+})();
