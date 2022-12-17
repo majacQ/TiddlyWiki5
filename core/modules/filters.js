@@ -12,6 +12,9 @@ Adds tiddler filtering methods to the $tw.Wiki object.
 /*global $tw: false */
 "use strict";
 
+/* Maximum permitted filter recursion depth */
+var MAX_FILTER_DEPTH = 300;
+
 /*
 Parses an operation (i.e. a run) within a filter string
 	operators: Array of array of operator nodes into which results should be inserted
@@ -63,7 +66,7 @@ function parseFilterOperation(operators,filterString,p) {
 			operator.operator = "title";
 		}
 		operator.operands = [];
-		function parseOperand(bracketType) {
+		var parseOperand = function(bracketType) {
 			var operand = {};
 			switch (bracketType) {
 				case "{": // Curly brackets
@@ -78,7 +81,7 @@ function parseFilterOperation(operators,filterString,p) {
 					nextBracketPos = filterString.indexOf(">",p);
 					break;
 				case "/": // regexp brackets
-					var rex = /^((?:[^\\\/]*|\\.)*)\/(?:\(([mygi]+)\))?/g,
+					var rex = /^((?:[^\\\/]|\\.)*)\/(?:\(([mygi]+)\))?/g,
 						rexMatch = rex.exec(filterString.substring(p));
 					if(rexMatch) {
 						operator.regexp = new RegExp(rexMatch[1], rexMatch[2]);
@@ -95,16 +98,18 @@ function parseFilterOperation(operators,filterString,p) {
 			if(nextBracketPos === -1) {
 				throw "Missing closing bracket in filter expression";
 			}
-			if(!operator.regexp) {
+			if(operator.regexp) {
+				operand.text = "";
+			} else {
 				operand.text = filterString.substring(p,nextBracketPos);
-				operator.operands.push(operand);
 			}
+			operator.operands.push(operand);
 			p = nextBracketPos + 1;
 		}
-		
+
 		p = nextBracketPos + 1;
 		parseOperand(bracket);
-		
+
 		// Check for multiple operands
 		while(filterString.charAt(p) === ",") {
 			p++;
@@ -116,7 +121,7 @@ function parseFilterOperation(operators,filterString,p) {
 				throw "Missing [ in filter expression";
 			}
 		}
-		
+
 		// Push this operator
 		operators.push(operator);
 	} while(filterString.charAt(p) !== "]");
@@ -137,7 +142,7 @@ exports.parseFilter = function(filterString) {
 		p = 0, // Current position in the filter string
 		match;
 	var whitespaceRegExp = /(\s+)/mg,
-		operandRegExp = /((?:\+|\-|~|=|\:(\w+))?)(?:(\[)|(?:"([^"]*)")|(?:'([^']*)')|([^\s\[\]]+))/mg;
+		operandRegExp = /((?:\+|\-|~|=|\:(\w+)(?:\:([\w\:, ]*))?)?)(?:(\[)|(?:"([^"]*)")|(?:'([^']*)')|([^\s\[\]]+))/mg;
 	while(p < filterString.length) {
 		// Skip any whitespace
 		whitespaceRegExp.lastIndex = p;
@@ -162,15 +167,27 @@ exports.parseFilter = function(filterString) {
 				if(match[2]) {
 					operation.namedPrefix = match[2];
 				}
+				if(match[3]) {
+					operation.suffixes = [];
+					 $tw.utils.each(match[3].split(":"),function(subsuffix) {
+						operation.suffixes.push([]);
+						$tw.utils.each(subsuffix.split(","),function(entry) {
+							entry = $tw.utils.trim(entry);
+							if(entry) {
+								operation.suffixes[operation.suffixes.length -1].push(entry);
+							}
+						});
+					 });
+				}
 			}
-			if(match[3]) { // Opening square bracket
+			if(match[4]) { // Opening square bracket
 				p = parseFilterOperation(operation.operators,filterString,p);
 			} else {
 				p = match.index + match[0].length;
 			}
-			if(match[4] || match[5] || match[6]) { // Double quoted string, single quoted string or unquoted title
+			if(match[5] || match[6] || match[7]) { // Double quoted string, single quoted string or unquoted title
 				operation.operators.push(
-					{operator: "title", operands: [{text: match[4] || match[5] || match[6]}]}
+					{operator: "title", operands: [{text: match[5] || match[6] || match[7]}]}
 				);
 			}
 			results.push(operation);
@@ -206,10 +223,18 @@ source: an iterator function for the source tiddlers, called source(iterator), w
 widget: an optional widget node for retrieving the current tiddler etc.
 */
 exports.compileFilter = function(filterString) {
+	if(!this.filterCache) {
+		this.filterCache = Object.create(null);
+		this.filterCacheCount = 0;
+	}
+	if(this.filterCache[filterString] !== undefined) {
+		return this.filterCache[filterString];
+	}
 	var filterParseTree;
 	try {
 		filterParseTree = this.parseFilter(filterString);
 	} catch(e) {
+		// We do not cache this result, so it adjusts along with localization changes
 		return function(source,widget) {
 			return [$tw.language.getString("Error/Filter") + ": " + e];
 		};
@@ -236,12 +261,13 @@ exports.compileFilter = function(filterString) {
 				} else {
 					operatorFunction = filterOperators[operator.operator];
 				}
-				
+
 				$tw.utils.each(operator.operands,function(operand) {
 					if(operand.indirect) {
 						operand.value = self.getTextReference(operand.text,"",currTiddlerTitle);
 					} else if(operand.variable) {
-						operand.value = widget.getVariable(operand.text,{defaultValue: ""});
+						var varTree = $tw.utils.parseFilterVariable(operand.text);
+						operand.value = widget.getVariable(varTree.name,{params:varTree.params,defaultValue: ""});
 					} else {
 						operand.value = operand.text;
 					}
@@ -280,23 +306,24 @@ exports.compileFilter = function(filterString) {
 		var filterRunPrefixes = self.getFilterRunPrefixes();
 		// Wrap the operator functions in a wrapper function that depends on the prefix
 		operationFunctions.push((function() {
+			var options = {wiki: self, suffixes: operation.suffixes || []};
 			switch(operation.prefix || "") {
 				case "": // No prefix means that the operation is unioned into the result
-					return filterRunPrefixes["or"](operationSubFunction);
+					return filterRunPrefixes["or"](operationSubFunction, options);
 				case "=": // The results of the operation are pushed into the result without deduplication
-					return filterRunPrefixes["all"](operationSubFunction);
+					return filterRunPrefixes["all"](operationSubFunction, options);
 				case "-": // The results of this operation are removed from the main result
-					return filterRunPrefixes["except"](operationSubFunction);	
+					return filterRunPrefixes["except"](operationSubFunction, options);
 				case "+": // This operation is applied to the main results so far
-					return filterRunPrefixes["and"](operationSubFunction);
+					return filterRunPrefixes["and"](operationSubFunction, options);
 				case "~": // This operation is unioned into the result only if the main result so far is empty
-					return filterRunPrefixes["else"](operationSubFunction);
+					return filterRunPrefixes["else"](operationSubFunction, options);
 				default: 
 					if(operation.namedPrefix && filterRunPrefixes[operation.namedPrefix]) {
-						return filterRunPrefixes[operation.namedPrefix](operationSubFunction);
+						return filterRunPrefixes[operation.namedPrefix](operationSubFunction, options);
 					} else {
 						return function(results,source,widget) {
-							results.splice(0,results.length);
+							results.clear();
 							results.push($tw.language.getString("Error/FilterRunPrefix"));
 						};
 					}
@@ -304,18 +331,37 @@ exports.compileFilter = function(filterString) {
 		})());
 	});
 	// Return a function that applies the operations to a source iterator of tiddler titles
-	return $tw.perf.measure("filter: " + filterString,function filterFunction(source,widget) {
+	var fnMeasured = $tw.perf.measure("filter: " + filterString,function filterFunction(source,widget) {
 		if(!source) {
 			source = self.each;
 		} else if(typeof source === "object") { // Array or hashmap
 			source = self.makeTiddlerIterator(source);
 		}
-		var results = [];
-		$tw.utils.each(operationFunctions,function(operationFunction) {
-			operationFunction(results,source,widget);
-		});
-		return results;
+		if(!widget) {
+			widget = $tw.rootWidget;
+		}
+		var results = new $tw.utils.LinkedList();
+		self.filterRecursionCount = (self.filterRecursionCount || 0) + 1;
+		if(self.filterRecursionCount < MAX_FILTER_DEPTH) {
+			$tw.utils.each(operationFunctions,function(operationFunction) {
+				operationFunction(results,source,widget);
+			});
+		} else {
+			results.push("/**-- Excessive filter recursion --**/");
+		}
+		self.filterRecursionCount = self.filterRecursionCount - 1;
+		return results.toArray();
 	});
+	if(this.filterCacheCount >= 2000) {
+		// To prevent memory leak, we maintain an upper limit for cache size.
+		// Reset if exceeded. This should give us 95% of the benefit
+		// that no cache limit would give us.
+		this.filterCache = Object.create(null);
+		this.filterCacheCount = 0;
+	}
+	this.filterCache[filterString] = fnMeasured;
+	this.filterCacheCount++;
+	return fnMeasured;
 };
 
 })();

@@ -14,6 +14,8 @@ Reveal widget
 
 var Widget = require("$:/core/modules/widgets/widget.js").widget;
 
+var Popup = require("$:/core/modules/utils/dom/popup.js");
+
 var RevealWidget = function(parseTreeNode,options) {
 	this.initialise(parseTreeNode,options);
 };
@@ -35,9 +37,8 @@ RevealWidget.prototype.render = function(parent,nextSibling) {
 		tag = this.revealTag;
 	}
 	var domNode = this.document.createElement(tag);
-	var classes = this["class"].split(" ") || [];
-	classes.push("tc-reveal");
-	domNode.className = classes.join(" ");
+	this.domNode = domNode;
+	this.assignDomNodeClasses();
 	if(this.style) {
 		domNode.setAttribute("style",this.style);
 	}
@@ -73,7 +74,7 @@ RevealWidget.prototype.positionPopup = function(domNode) {
 		case "belowright":
 			left = this.popup.left + this.popup.width;
 			top = this.popup.top + this.popup.height;
-			break;			
+			break;
 		case "right":
 			left = this.popup.left + this.popup.width;
 			top = this.popup.top;
@@ -85,7 +86,7 @@ RevealWidget.prototype.positionPopup = function(domNode) {
 		case "aboveleft":
 			left = this.popup.left - domNode.offsetWidth;
 			top = this.popup.top - domNode.offsetHeight;
-			break;			
+			break;
 		default: // Below
 			left = this.popup.left;
 			top = this.popup.top + this.popup.height;
@@ -94,6 +95,13 @@ RevealWidget.prototype.positionPopup = function(domNode) {
 	if(!this.positionAllowNegative) {
 		left = Math.max(0,left);
 		top = Math.max(0,top);
+	}
+	if (this.popup.absolute) {
+		// Traverse the offsetParent chain and correct the offset to make it relative to the parent node.
+		for (var offsetParentDomNode = domNode.offsetParent; offsetParentDomNode; offsetParentDomNode = offsetParentDomNode.offsetParent) {
+			left -= offsetParentDomNode.offsetLeft;
+			top -= offsetParentDomNode.offsetTop;
+		}
 	}
 	domNode.style.left = left + "px";
 	domNode.style.top = top + "px";
@@ -110,7 +118,7 @@ RevealWidget.prototype.execute = function() {
 	this.text = this.getAttribute("text");
 	this.position = this.getAttribute("position");
 	this.positionAllowNegative = this.getAttribute("positionAllowNegative") === "yes";
-	this["class"] = this.getAttribute("class","");
+	// class attribute handled in assignDomNodeClasses()
 	this.style = this.getAttribute("style","");
 	this["default"] = this.getAttribute("default","");
 	this.animate = this.getAttribute("animate","no");
@@ -184,23 +192,21 @@ RevealWidget.prototype.compareStateText = function(state) {
 };
 
 RevealWidget.prototype.readPopupState = function(state) {
-	var popupLocationRegExp = /^\((-?[0-9\.E]+),(-?[0-9\.E]+),(-?[0-9\.E]+),(-?[0-9\.E]+)\)$/,
-		match = popupLocationRegExp.exec(state);
+	this.popup = Popup.parseCoordinates(state);
 	// Check if the state matches the location regexp
-	if(match) {
+	if(this.popup) {
 		// If so, we're open
 		this.isOpen = true;
-		// Get the location
-		this.popup = {
-			left: parseFloat(match[1]),
-			top: parseFloat(match[2]),
-			width: parseFloat(match[3]),
-			height: parseFloat(match[4])
-		};
 	} else {
 		// If not, we're closed
 		this.isOpen = false;
 	}
+};
+
+RevealWidget.prototype.assignDomNodeClasses = function() {
+	var classes = this.getAttribute("class","").split(" ");
+	classes.push("tc-reveal");
+	this.domNode.className = classes.join(" ");
 };
 
 /*
@@ -221,8 +227,14 @@ RevealWidget.prototype.refresh = function(changedTiddlers) {
 				this.refreshSelf();
 				return true;
 			}
-		} else if(this.type === "popup" && this.updatePopupPosition && (changedTiddlers[this.state] || changedTiddlers[this.stateTitle])) {
-			this.positionPopup(this.domNodes[0]);
+		} else if(this.type === "popup" && this.isOpen && this.updatePopupPosition && (changedTiddlers[this.state] || changedTiddlers[this.stateTitle])) {
+			this.positionPopup(this.domNode);
+		}
+		if(changedAttributes.style) {
+			this.domNode.style = this.getAttribute("style","");
+		}
+		if(changedAttributes["class"]) {
+			this.assignDomNodeClasses();
 		}
 		return this.refreshChildren(changedTiddlers);
 	}

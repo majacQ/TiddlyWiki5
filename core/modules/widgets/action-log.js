@@ -62,27 +62,27 @@ LogWidget.prototype.log = function() {
 	$tw.utils.each(this.attributes,function(attribute,name) {
 		if(name.substring(0,2) !== "$$") {
 			data[name] = attribute;
-		}		
+		}
 	});
 
 	for(var v in this.variables) {
 		allVars[v] = this.getVariable(v,{defaultValue:""});
-	}	
+	}
 	if(this.filter) {
 		filteredVars = this.wiki.compileFilter(this.filter).call(this.wiki,this.wiki.makeTiddlerIterator(allVars));
 		$tw.utils.each(filteredVars,function(name) {
 			data[name] = allVars[name];
-		});		
+		});
 	}
 	dataCount = $tw.utils.count(data);
 
 	console.group(this.message);
 	if(dataCount > 0) {
-		$tw.utils.logTable(data,["name","value"]);
+		$tw.utils.logTable(data);
 	}
 	if(this.logAll || !dataCount) {
 		console.groupCollapsed("All variables");
-		$tw.utils.logTable(allVars,["name","value"]);
+		$tw.utils.logTable(allVars);
 		console.groupEnd();
 	}
 	console.groupEnd();

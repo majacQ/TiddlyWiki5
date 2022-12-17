@@ -49,7 +49,9 @@ DroppableWidget.prototype.render = function(parent,nextSibling) {
 			{name: "dragover", handlerObject: this, handlerMethod: "handleDragOverEvent"},
 			{name: "dragleave", handlerObject: this, handlerMethod: "handleDragLeaveEvent"},
 			{name: "drop", handlerObject: this, handlerMethod: "handleDropEvent"}
-		]);		
+		]);
+	} else {
+		$tw.utils.addClass(this.domNode,this.disabledClass);
 	}
 	// Insert element
 	parent.insertBefore(domNode,nextSibling);
@@ -145,6 +147,7 @@ DroppableWidget.prototype.execute = function() {
 	this.droppableEffect = this.getAttribute("effect","copy");
 	this.droppableTag = this.getAttribute("tag");
 	this.droppableEnable = (this.getAttribute("enable") || "yes") === "yes";
+	this.disabledClass = this.getAttribute("disabledClass","");
 	// Make child widgets
 	this.makeChildWidgets();
 };
@@ -152,7 +155,7 @@ DroppableWidget.prototype.execute = function() {
 DroppableWidget.prototype.assignDomNodeClasses = function() {
 	var classes = this.getAttribute("class","").split(" ");
 	classes.push("tc-droppable");
-	this.domNode.className = classes.join(" ");	
+	this.domNode.className = classes.join(" ");
 };
 
 /*
@@ -160,7 +163,7 @@ Selectively refreshes the widget if needed. Returns true if the widget or any of
 */
 DroppableWidget.prototype.refresh = function(changedTiddlers) {
 	var changedAttributes = this.computeAttributes();
-	if(changedAttributes.tag || changedAttributes.enable) {
+	if(changedAttributes.tag || changedAttributes.enable || changedAttributes.disabledClass || changedAttributes.actions || changedAttributes.effect) {
 		this.refreshSelf();
 		return true;
 	} else if(changedAttributes["class"]) {

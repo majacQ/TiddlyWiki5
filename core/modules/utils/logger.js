@@ -21,6 +21,7 @@ function Logger(componentName,options) {
 	options = options || {};
 	this.componentName = componentName || "";
 	this.colour = options.colour || "white";
+	this.prefix = options.prefix || "";
 	this.enable = "enable" in options ? options.enable : true;
 	this.save = "save" in options ? options.save : true;
 	this.saveLimit = options.saveLimit || 100 * 1024;
@@ -34,9 +35,32 @@ Logger.prototype.setSaveBuffer = function(logger) {
 };
 
 /*
+Change the output colour
+*/
+Logger.prototype.setColour = function(colour) {
+	this.colour = colour || "white";
+};
+
+/*
+Change the prefix
+*/
+Logger.prototype.setPrefix = function(prefix) {
+	this.prefix = prefix || "";
+};
+
+/*
 Log a message
 */
 Logger.prototype.log = function(/* args */) {
+  <<<<<<< logging-improvements
+	if(this.enable && console !== undefined && console.log !== undefined) {
+		return Function.apply.call(console.log,console,[
+			(new Date()).toISOString() + " [" +
+			this.componentName + this.prefix + "]" +
+			$tw.utils.terminalColour(this.colour)
+		].concat(Array.prototype.slice.call(arguments,0)).concat($tw.utils.terminalColour()));
+	}
+  =======
 	var self = this;
 	if(this.enable) {
 		if(this.saveBufferLogger.save) {
@@ -45,10 +69,12 @@ Logger.prototype.log = function(/* args */) {
 				self.saveBufferLogger.buffer += " " + arg;
 			});
 			this.saveBufferLogger.buffer += "\n";
-			this.saveBufferLogger.buffer = this.saveBufferLogger.buffer.slice(-this.saveBufferLogger.saveLimit);			
+			this.saveBufferLogger.buffer = this.saveBufferLogger.buffer.slice(-this.saveBufferLogger.saveLimit);
 		}
 		if(console !== undefined && console.log !== undefined) {
-			return Function.apply.call(console.log, console, [$tw.utils.terminalColour(this.colour),this.componentName + ":"].concat(Array.prototype.slice.call(arguments,0)).concat($tw.utils.terminalColour()));
+			var logMessage = [$tw.utils.terminalColour(this.colour) + this.componentName + ":"].concat(Array.prototype.slice.call(arguments,0));
+			logMessage[logMessage.length-1] += $tw.utils.terminalColour();
+			return Function.apply.call(console.log, console, logMessage);
 		}
 	} 
 };
@@ -65,6 +91,7 @@ Log a structure as a table
 */
 Logger.prototype.table = function(value) {
 	(console.table || console.log)(value);
+  >>>>>>> wikitext-via-macros
 };
 
 /*
@@ -111,7 +138,7 @@ Logger.prototype.alert = function(/* args */) {
 		} else {
 			// Print an orange message to the console if not in the browser
 			console.error("\x1b[1;33m" + text + "\x1b[0m");
-		}		
+		}
 	}
 };
 
