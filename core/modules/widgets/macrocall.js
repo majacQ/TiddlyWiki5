@@ -56,15 +56,25 @@ MacroCallWidget.prototype.execute = function() {
 	if(this.renderOutput === "text/html") {
 		// If so we'll return the parsed macro
 		// Check if we've already cached parsing this macro
+  <<<<<<< optimising-macrocalls
+		var parser;
+		if(variableInfo.srcVariable && variableInfo.srcVariable.parser) {
+			parser = variableInfo.srcVariable.parser;
+  =======
 		var mode = this.parseTreeNode.isBlock ? "blockParser" : "inlineParser",
 			parser;
 		if(variableInfo.srcVariable && variableInfo.srcVariable[mode]) {
 			parser = variableInfo.srcVariable[mode];
+  >>>>>>> wikitext-via-macros
 		} else {
 			parser = this.wiki.parseText(this.parseType,text,
 								{parseAsInline: !this.parseTreeNode.isBlock});
 			if(variableInfo.isCacheable && variableInfo.srcVariable) {
+  <<<<<<< optimising-macrocalls
+				// variableInfo.srcVariable.parser = parser;
+  =======
 				variableInfo.srcVariable[mode] = parser;
+  >>>>>>> wikitext-via-macros
 			}
 		}
 		var parseTreeNodes = parser ? parser.tree : [];
