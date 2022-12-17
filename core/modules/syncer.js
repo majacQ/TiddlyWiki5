@@ -25,6 +25,10 @@ Syncer.prototype.titleSyncPollingInterval = "$:/config/SyncPollingInterval";
 Syncer.prototype.titleSyncDisableLazyLoading = "$:/config/SyncDisableLazyLoading";
 Syncer.prototype.titleSavedNotification = "$:/language/Notifications/Save/Done";
 Syncer.prototype.titleSyncThrottleInterval = "$:/config/SyncThrottleInterval";
+  <<<<<<< allow-filter-duplicates
+Syncer.prototype.titleTaskTimerInterval = "$:/config/TaskTimerInterval"
+  =======
+  >>>>>>> new-json-store-area
 Syncer.prototype.taskTimerInterval = 1 * 1000; // Interval for sync timer
 Syncer.prototype.throttleInterval = 1 * 1000; // Defer saving tiddlers if they've changed in the last 1s...
 Syncer.prototype.errorRetryInterval = 5 * 1000; // Interval to retry after an error
@@ -46,7 +50,11 @@ function Syncer(options) {
 	this.titleUserName = options.titleUserName || this.titleUserName;
 	this.titleSyncFilter = options.titleSyncFilter || this.titleSyncFilter;
 	this.titleSavedNotification = options.titleSavedNotification || this.titleSavedNotification;
+  <<<<<<< allow-filter-duplicates
+	this.taskTimerInterval = options.taskTimerInterval || parseInt(this.wiki.getTiddlerText(this.titleTaskTimerInterval,""),10) || this.taskTimerInterval;
+  =======
 	this.taskTimerInterval = options.taskTimerInterval || this.taskTimerInterval;
+  >>>>>>> new-json-store-area
 	this.throttleInterval = options.throttleInterval || parseInt(this.wiki.getTiddlerText(this.titleSyncThrottleInterval,""),10) || this.throttleInterval;
 	this.errorRetryInterval = options.errorRetryInterval || this.errorRetryInterval;
 	this.fallbackInterval = options.fallbackInterval || this.fallbackInterval;
@@ -58,12 +66,15 @@ function Syncer(options) {
 		enable: this.logging,
 		saveHistory: true
 	});
+  <<<<<<< allow-filter-duplicates
+  =======
 	// Make another logger for connection errors
 	this.loggerConnection = new $tw.utils.Logger("syncer" + ($tw.browser ? "-browser" : "") + ($tw.node ? "-server" : "")  + (this.syncadaptor.name ? ("-" + this.syncadaptor.name) : "") + "-connection",{
 		colour: "cyan",
 		enable: this.logging
 	});
 	// Ask the syncadaptor to use the main logger
+  >>>>>>> new-json-store-area
 	if(this.syncadaptor.setLoggerSaveBuffer) {
 		this.syncadaptor.setLoggerSaveBuffer(this.logger);
 	}
@@ -151,6 +162,11 @@ function Syncer(options) {
 /*
 Show a generic network error alert
 */
+  <<<<<<< allow-filter-duplicates
+Syncer.prototype.showErrorAlert = function() {
+console.log($tw.language.getString("Error/NetworkErrorAlert"))
+	this.logger.alert($tw.language.getString("Error/NetworkErrorAlert"));
+  =======
 Syncer.prototype.displayError = function(msg,err) {
 	if(err === ($tw.language.getString("Error/XMLHttpRequest") + ": 0")) {
 		this.loggerConnection.alert($tw.language.getString("Error/NetworkErrorAlert"));
@@ -158,6 +174,7 @@ Syncer.prototype.displayError = function(msg,err) {
 	} else {
 		this.logger.alert(msg + ":",err);
 	}
+  >>>>>>> new-json-store-area
 };
 
 /*
@@ -189,6 +206,14 @@ Syncer.prototype.readTiddlerInfo = function() {
 	var self = this,
 		tiddlers = this.getSyncedTiddlers();
 	$tw.utils.each(tiddlers,function(title) {
+  <<<<<<< allow-filter-duplicates
+		var tiddler = self.wiki.tiddlerExists(title) && self.wiki.getTiddler(title);
+		self.tiddlerInfo[title] = {
+			revision: self.getTiddlerRevision(title),
+			adaptorInfo: self.syncadaptor && self.syncadaptor.getTiddlerInfo(tiddler),
+			changeCount: self.wiki.getChangeCount(title)
+		};
+  =======
 		var tiddler = self.wiki.getTiddler(title);
 		if(tiddler) {
 			self.tiddlerInfo[title] = {
@@ -197,6 +222,7 @@ Syncer.prototype.readTiddlerInfo = function() {
 				changeCount: self.wiki.getChangeCount(title)
 			};
 		}
+  >>>>>>> new-json-store-area
 	});
 };
 
@@ -213,7 +239,11 @@ Syncer.prototype.isDirty = function() {
 		if(this.wiki.tiddlerExists(title)) {
 			if(tiddlerInfo) {
 				// If the tiddler is known on the server and has been modified locally then it needs to be saved to the server
+  <<<<<<< allow-filter-duplicates
+				if($tw.wiki.getChangeCount(title) > tiddlerInfo.changeCount) {
+  =======
 				if(this.wiki.getChangeCount(title) > tiddlerInfo.changeCount) {
+  >>>>>>> new-json-store-area
 					return true;
 				}
 			} else {
@@ -241,7 +271,11 @@ Syncer.prototype.updateDirtyStatus = function() {
 		var dirty = this.isDirty();
 		$tw.utils.toggleClass(document.body,"tc-dirty",dirty);
 		if(!dirty) {
+  <<<<<<< allow-filter-duplicates
+			this.logger.clearAlerts();
+  =======
 			this.loggerConnection.clearAlerts();
+  >>>>>>> new-json-store-area
 		}
 	}
 };
@@ -279,9 +313,12 @@ Syncer.prototype.getStatus = function(callback) {
 				if(isLoggedIn) {
 					self.wiki.addTiddler({title: self.titleUserName,text: username || ""});
 				}
+  <<<<<<< allow-filter-duplicates
+  =======
 				if(isPollingDisabled) {
 					self.wiki.addTiddler({title: self.titleSyncDisablePolling, text: "yes"});
 				}
+  >>>>>>> new-json-store-area
 			}
 			// Invoke the callback
 			if(callback) {
@@ -305,6 +342,13 @@ Syncer.prototype.syncFromServer = function() {
 			}
 		},
 		triggerNextSync = function() {
+  <<<<<<< allow-filter-duplicates
+			self.pollTimerId = setTimeout(function() {
+				self.pollTimerId = null;
+				self.syncFromServer.call(self);
+			},self.pollTimerInterval);
+		};
+  =======
 			if(pollingEnabled) {
 				self.pollTimerId = setTimeout(function() {
 					self.pollTimerId = null;
@@ -314,13 +358,19 @@ Syncer.prototype.syncFromServer = function() {
 		},
 		syncSystemFromServer = (self.wiki.getTiddlerText("$:/config/SyncSystemTiddlersFromServer") === "yes"),
 		pollingEnabled = (self.wiki.getTiddlerText(self.titleSyncDisablePolling) !== "yes");
+  >>>>>>> new-json-store-area
 	if(this.syncadaptor && this.syncadaptor.getUpdatedTiddlers) {
 		this.logger.log("Retrieving updated tiddler list");
 		cancelNextSync();
 		this.syncadaptor.getUpdatedTiddlers(self,function(err,updates) {
 			triggerNextSync();
 			if(err) {
+  <<<<<<< allow-filter-duplicates
+				self.showErrorAlert();
+				self.logger.log($tw.language.getString("Error/RetrievingSkinny") + ":",err);
+  =======
 				self.displayError($tw.language.getString("Error/RetrievingSkinny"),err);
+  >>>>>>> new-json-store-area
 				return;
 			}
 			if(updates) {
@@ -328,11 +378,17 @@ Syncer.prototype.syncFromServer = function() {
 					self.titlesToBeLoaded[title] = true;
 				});
 				$tw.utils.each(updates.deletions,function(title) {
+  <<<<<<< allow-filter-duplicates
+					delete self.tiddlerInfo[title];
+					self.logger.log("Deleting tiddler missing from server:",title);
+					self.wiki.deleteTiddler(title);
+  =======
 					if(syncSystemFromServer || !self.wiki.isSystemTiddler(title)) {
 						delete self.tiddlerInfo[title];
 						self.logger.log("Deleting tiddler missing from server:",title);
 						self.wiki.deleteTiddler(title);
 					}
+ >>>>>>> new-json-store-area
 				});
 				if(updates.modifications.length > 0 || updates.deletions.length > 0) {
 					self.processTaskQueue();
@@ -346,7 +402,12 @@ Syncer.prototype.syncFromServer = function() {
 			triggerNextSync();
 			// Check for errors
 			if(err) {
+  <<<<<<< allow-filter-duplicates
+				self.showErrorAlert();
+				self.logger.log($tw.language.getString("Error/RetrievingSkinny") + ":",err);
+  =======
 				self.displayError($tw.language.getString("Error/RetrievingSkinny"),err);
+  >>>>>>> new-json-store-area
 				return;
 			}
 			// Keep track of which tiddlers we already know about have been reported this time
@@ -375,11 +436,17 @@ Syncer.prototype.syncFromServer = function() {
 			}
 			// Delete any tiddlers that were previously reported but missing this time
 			$tw.utils.each(previousTitles,function(title) {
+  <<<<<<< allow-filter-duplicates
+				delete self.tiddlerInfo[title];
+				self.logger.log("Deleting tiddler missing from server:",title);
+				self.wiki.deleteTiddler(title);
+  =======
 				if(syncSystemFromServer || !self.wiki.isSystemTiddler(title)) {
 					delete self.tiddlerInfo[title];
 					self.logger.log("Deleting tiddler missing from server:",title);
 					self.wiki.deleteTiddler(title);
 				}
+  >>>>>>> new-json-store-area
 			});
 			self.processTaskQueue();
 		});
@@ -420,6 +487,16 @@ Syncer.prototype.handleLoginEvent = function() {
 	var self = this;
 	this.getStatus(function(err,isLoggedIn,username) {
 		if(!err && !isLoggedIn) {
+  <<<<<<< allow-filter-duplicates
+			$tw.passwordPrompt.createPrompt({
+				serviceName: $tw.language.getString("LoginToTiddlySpace"),
+				callback: function(data) {
+					self.login(data.username,data.password,function(err,isLoggedIn) {
+						self.syncFromServer();
+					});
+					return true; // Get rid of the password prompt
+				}
+  =======
 			if(self.syncadaptor && self.syncadaptor.displayLoginPrompt) {
 				self.syncadaptor.displayLoginPrompt(self);
 			} else {
@@ -439,6 +516,7 @@ Syncer.prototype.displayLoginPrompt = function() {
 		callback: function(data) {
 			self.login(data.username,data.password,function(err,isLoggedIn) {
 				self.syncFromServer();
+  >>>>>>> new-json-store-area
 			});
 			return true; // Get rid of the password prompt
 		}
@@ -510,7 +588,12 @@ Syncer.prototype.processTaskQueue = function() {
 			task.run(function(err) {
 				self.numTasksInProgress -= 1;
 				if(err) {
+  <<<<<<< allow-filter-duplicates
+					self.showErrorAlert();
+					self.logger.log("Sync error while processing " + task.type + " of '" + task.title + "':\n" + err);
+  =======
 					self.displayError("Sync error while processing " + task.type + " of '" + task.title + "'",err);
+ >>>>>>> new-json-store-area
 					self.updateDirtyStatus();
 					self.triggerTimeout(self.errorRetryInterval);
 				} else {
@@ -558,7 +641,11 @@ Syncer.prototype.chooseNextTask = function() {
 			tiddlerInfo = this.tiddlerInfo[title];
 		if(tiddler) {
 			// If the tiddler is not known on the server, or has been modified locally no more recently than the threshold then it needs to be saved to the server
+  <<<<<<< allow-filter-duplicates
+			var hasChanged = !tiddlerInfo || $tw.wiki.getChangeCount(title) > tiddlerInfo.changeCount,
+  =======
 			var hasChanged = !tiddlerInfo || this.wiki.getChangeCount(title) > tiddlerInfo.changeCount,
+  >>>>>>> new-json-store-area
 				isReadyToSave = !tiddlerInfo || !tiddlerInfo.timestampLastSaved || tiddlerInfo.timestampLastSaved < thresholdLastSaved;
 			if(hasChanged) {
 				if(isReadyToSave) {
@@ -601,10 +688,14 @@ SaveTiddlerTask.prototype.run = function(callback) {
 		tiddler = this.syncer.wiki.tiddlerExists(this.title) && this.syncer.wiki.getTiddler(this.title);
 	this.syncer.logger.log("Dispatching 'save' task:",this.title);
 	if(tiddler) {
+  <<<<<<< allow-filter-duplicates
+		this.syncer.syncadaptor.saveTiddler(tiddler,function(err,adaptorInfo,revision) {
+  =======
 		this.syncer.syncadaptor.saveTiddler(tiddler,{
 			changeCount: changeCount,
 			tiddlerInfo: self.syncer.tiddlerInfo[self.title]
 		},function(err,adaptorInfo,revision) {
+  >>>>>>> new-json-store-area
 			// If there's an error, exit without changing any internal state
 			if(err) {
 				return callback(err);
@@ -634,9 +725,13 @@ function DeleteTiddlerTask(syncer,title) {
 DeleteTiddlerTask.prototype.run = function(callback) {
 	var self = this;
 	this.syncer.logger.log("Dispatching 'delete' task:",this.title);
+  <<<<<<< allow-filter-duplicates
+	this.syncer.syncadaptor.deleteTiddler(this.title,function(err) {
+  =======
 	this.syncer.syncadaptor.deleteTiddler(this.title,{
 		tiddlerInfo: self.syncer.tiddlerInfo[this.title]
 	},function(err,adaptorInfo) {
+  >>>>>>> new-json-store-area
 		// If there's an error, exit without changing any internal state
 		if(err) {
 			return callback(err);
@@ -645,6 +740,11 @@ DeleteTiddlerTask.prototype.run = function(callback) {
 		delete self.syncer.tiddlerInfo[self.title];
 		// Invoke the callback
 		callback(null);
+  <<<<<<< allow-filter-duplicates
+	},{
+		tiddlerInfo: self.syncer.tiddlerInfo[this.title]
+  =======
+  >>>>>>> new-json-store-area
 	});
 };
 

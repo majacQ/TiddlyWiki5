@@ -1,5 +1,9 @@
 created: 20130825162100000
+  <<<<<<< allow-filter-duplicates
+modified: 20200113094126878
+  =======
 modified: 20201025162413404
+  >>>>>>> new-json-store-area
 tags: dev moduletypes
 title: SyncAdaptorModules
 type: text/vnd.tiddlywiki
@@ -69,7 +73,11 @@ Returns a revision ID.
 Retrieves status information from the server. This method is optional.
 
 |!Parameter |!Description |
+  <<<<<<< allow-filter-duplicates
+|callback |Callback function invoked with parameters `err,isLoggedIn,username,isReadOnly` |
+  =======
 |callback |Callback function invoked with parameters `err,isLoggedIn,username,isReadOnly,isAnonymous,isPollingDisabled` |
+  >>>>>>> new-json-store-area
 
 !! `login(username,password,callback)`
 
@@ -128,7 +136,11 @@ The syncer will use the `getUpdatedTiddlers()` method in preference to the `getS
 |!Parameter |!Description |
 |callback |Callback function invoked with parameter `err,tiddlers`, where `tiddlers` is an array of tiddler field objects |
 
+  <<<<<<< allow-filter-duplicates
+!! `saveTiddler(tiddler,callback)`
+  =======
 !! `saveTiddler(tiddler,options,callback)`
+  >>>>>>> new-json-store-area
 
 Saves a tiddler to the server.
 
@@ -147,7 +159,11 @@ Loads a tiddler from the server.
 |options |See below |
 |callback |Callback function invoked with parameter `err,tiddlerFields` |
 
+  <<<<<<< allow-filter-duplicates
+!! `deleteTiddler(title,callback,options)`
+  =======
 !! `deleteTiddler(title,options,callback)`
+  >>>>>>> new-json-store-area
 
 Delete a tiddler from the server.
 
@@ -155,6 +171,13 @@ Delete a tiddler from the server.
 |title |Title of tiddler to be deleted |
 |options |See below |
 |callback |Callback function invoked with parameter `err` |
+  <<<<<<< allow-filter-duplicates
+|options |See below |
+
+The options parameter contains the following properties:
+
+|!Property |!Description |
+  =======
 
 !!! Options
 
@@ -164,4 +187,5 @@ The options parameter may contain the following properties, depending on the met
 
 |!Property |!Description |
 |changeCount |The //new// changeCount value for this tiddler |
+  >>>>>>> new-json-store-area
 |tiddlerInfo |The tiddlerInfo maintained by the syncer for this tiddler |

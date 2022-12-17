@@ -740,9 +740,8 @@ exports.isValidFieldName = function(name) {
 	if(!name || typeof name !== "string") {
 		return false;
 	}
-	name = name.toLowerCase().trim();
-	var fieldValidatorRegEx = /^[a-z0-9\-\._]+$/mg;
-	return fieldValidatorRegEx.test(name);
+	// Since v5.2.x, there are no restrictions on characters in field names
+	return name;
 };
 
 /*
@@ -903,6 +902,8 @@ exports.getSystemInfo = function(str,ending,position) {
 	return results.join("\n");
 };
 
+  <<<<<<< allow-filter-duplicates
+  =======
 exports.parseNumber = function(str) {
 	return parseFloat(str) || 0;
 };
@@ -969,4 +970,5 @@ exports.makeCompareFunction = function(type,options) {
 	return (types[type] || types[options.defaultType] || types.number);
 };
 
+  >>>>>>> new-json-store-area
 })();

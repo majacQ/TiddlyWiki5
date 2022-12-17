@@ -700,21 +700,49 @@ exports.getTiddlerAsJson = function(title) {
 	}
 };
 
-exports.getTiddlersAsJson = function(filter,spaces) {
-	var tiddlers = this.filterTiddlers(filter),
-		spaces = (spaces === undefined) ? $tw.config.preferences.jsonSpaces : spaces,
-		data = [];
-	for(var t=0;t<tiddlers.length; t++) {
-		var tiddler = this.getTiddler(tiddlers[t]);
+/*
+Options:
+spaces: number of spaces. The special value -1 results in a line break in between each tiddler
+escapeUnsafeScriptCharacters: true to force escaping of characters that cannot be embedded in HTML
+*/
+exports.getTiddlersAsJson = function(filter,options) {
+	options = options || {};
+	if(typeof options === "string") {
+		options = {spaces: options};
+	}
+	var titles = this.filterTiddlers(filter),
+		spaces = (options.spaces === undefined) ? $tw.config.preferences.jsonSpaces : options.spaces,
+		data = [],
+		t;
+	for(t=0;t<titles.length; t++) {
+		var tiddler = this.getTiddler(titles[t]);
 		if(tiddler) {
-			var fields = new Object();
-			for(var field in tiddler.fields) {
-				fields[field] = tiddler.getFieldString(field);
-			}
-			data.push(fields);
+			data.push(tiddler.getFieldStrings());
 		}
 	}
-	return JSON.stringify(data,null,spaces);
+	var json;
+	if(spaces === -1) {
+		var jsonLines = [];
+		for(t=0;t<data.length; t++) {
+			jsonLines.push(JSON.stringify(data[t]));
+		}
+		json = "[\n" + jsonLines.join(",\n") + "\n]";
+	} else {
+		json = JSON.stringify(data,null,spaces);
+	}
+	if(options.escapeUnsafeScriptCharacters) {
+		function escapeUnsafeChars(unsafeChar) {
+			return {
+				"<":      "\\u003C",
+				">":      "\\u003E",
+				"/":      "\\u002F",
+				"\u2028": "\\u2028",
+				"\u2029": "\\u2029"
+			}[unsafeChar];
+		}
+		json = json.replace(/</g,escapeUnsafeChars);
+	}
+	return json;
 };
 
 /*
@@ -937,41 +965,57 @@ exports.parseTiddler = function(title,options) {
 };
 
 exports.parseTextReference = function(title,field,index,options) {
-	var tiddler,text;
-	if(options.subTiddler) {
-		tiddler = this.getSubTiddler(title,options.subTiddler);
-	} else {
+	var tiddler,
+		text,
+		parserInfo;
+	if(!options.subTiddler) {
 		tiddler = this.getTiddler(title);
 		if(field === "text" || (!field && !index)) {
 			this.getTiddlerText(title); // Force the tiddler to be lazily loaded
 			return this.parseTiddler(title,options);
 		}
+	} 
+	parserInfo = this.getTextReferenceParserInfo(title,field,index,options);
+	if(parserInfo.sourceText !== null) {
+		return this.parseText(parserInfo.parserType,parserInfo.sourceText,options);
+	} else {
+		return null;
+	}
+};
+
+exports.getTextReferenceParserInfo = function(title,field,index,options) {
+	var tiddler,
+		parserInfo = {
+			sourceText : null,
+			parserType : "text/vnd.tiddlywiki"
+		};
+	if(options.subTiddler) {
+		tiddler = this.getSubTiddler(title,options.subTiddler);
+	} else {
+		tiddler = this.getTiddler(title);
 	}
 	if(field === "text" || (!field && !index)) {
 		if(tiddler && tiddler.fields) {
-			return this.parseText(tiddler.fields.type,tiddler.fields.text,options);
-		} else {
-			return null;
+			parserInfo.sourceText = tiddler.fields.text || "";
+			if(tiddler.fields.type) {
+				parserInfo.parserType = tiddler.fields.type;
+			}
 		}
 	} else if(field) {
 		if(field === "title") {
-			text = title;
-		} else {
-			if(!tiddler || !tiddler.hasField(field)) {
-				return null;
-			}
-			text = tiddler.fields[field];
+			parserInfo.sourceText = title;
+		} else if(tiddler && tiddler.fields) {
+			parserInfo.sourceText = tiddler.fields[field] ? tiddler.fields[field].toString() : null;
 		}
-		return this.parseText("text/vnd.tiddlywiki",text.toString(),options);
 	} else if(index) {
 		this.getTiddlerText(title); // Force the tiddler to be lazily loaded
-		text = this.extractTiddlerDataItem(tiddler,index,undefined);
-		if(text === undefined) {
-			return null;
-		}
-		return this.parseText("text/vnd.tiddlywiki",text,options);
+		parserInfo.sourceText = this.extractTiddlerDataItem(tiddler,index,null);
 	}
-};
+	if(parserInfo.sourceText === null) {
+		parserInfo.parserType = null;
+	}
+	return parserInfo;
+}
 
 /*
 Make a widget tree for a parse tree
