@@ -56,8 +56,13 @@ $value={{{ [<newFieldValueTiddler>get[text]] }}}/>
 \end
 \whitespace trim
 
+  <<<<<<< bidi-improvements
+<div class="tc-edit-fields" dir={{$:/config/DefaultTextDirection}}>
+<table class="tc-edit-fields">
+  =======
 <div class="tc-edit-fields">
 <table class={{{ [all[current]fields[]] :filter[lookup[$:/config/EditTemplateFields/Visibility/]!match[hide]] +[count[]!match[0]] +[then[tc-edit-fields]] ~[[tc-edit-fields tc-edit-fields-small]] }}}>
+  >>>>>>> external-tasks
 <tbody>
 <$list filter="[all[current]fields[]] +[sort[title]]" variable="currentField" storyview="pop">
 <$list filter=<<config-filter>> variable="temp">
@@ -83,9 +88,15 @@ $value={{{ [<newFieldValueTiddler>get[text]] }}}/>
 </div>
 
 <$fieldmangler>
+  <<<<<<< bidi-improvements
+<div class="tc-edit-field-add" dir={{$:/config/DefaultTextDirection}}>
+<em class="tc-edit">
+<<lingo Fields/Add/Prompt>>&nbsp;&nbsp;
+  =======
 <div class="tc-edit-field-add">
 <em class="tc-edit tc-small-gap-right">
 <<lingo Fields/Add/Prompt>>
+  >>>>>>> external-tasks
 </em>
 <$vars refreshTitle=<<qualify "$:/temp/fieldname/refresh">> storeTitle=<<newFieldNameInputTiddler>> searchListState=<<newFieldNameSelectionTiddler>>>
 <div class="tc-edit-field-add-name-wrapper">

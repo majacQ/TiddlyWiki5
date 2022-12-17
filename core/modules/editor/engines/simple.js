@@ -52,11 +52,16 @@ function SimpleEngine(options) {
 	if(this.widget.editTabIndex) {
 		this.domNode.setAttribute("tabindex",this.widget.editTabIndex);
 	}
+  <<<<<<< bidi-improvements
+	if(this.widget.editDir) {
+		this.domNode.setAttribute("dir",this.widget.editDir);
+  =======
 	if(this.widget.editAutoComplete) {
 		this.domNode.setAttribute("autocomplete",this.widget.editAutoComplete);
 	}
 	if(this.widget.isDisabled === "yes") {
 		this.domNode.setAttribute("disabled",true);
+  >>>>>>> external-tasks
 	}
 	// Add an input event handler
 	$tw.utils.addEventListeners(this.domNode,[
