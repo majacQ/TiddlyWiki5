@@ -3,6 +3,10 @@ tags: $:/tags/PageControls
 caption: {{$:/plugins/tiddlywiki/tiddlyweb/icon/cloud}} Server status
 description: Status of synchronisation with server
 
+  <<<<<<< allow-filter-duplicates
+  =======
+\whitespace trim
+  >>>>>>> new-json-store-area
 \define config-title()
 $:/config/PageControlButtons/Visibility/$(listItem)$
 \end

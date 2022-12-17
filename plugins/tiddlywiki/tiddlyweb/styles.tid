@@ -10,11 +10,20 @@ body.tc-dirty span.tc-dirty-indicator svg {
 body .tc-image-cloud-idle {
 	fill: <<colour background>>;
 	transition: opacity 250ms ease-in-out;
+  <<<<<<< allow-filter-duplicates
 	opacity: 1;	
+  =======
+	opacity: 1;
+	display: unset;
+  >>>>>>> new-json-store-area
 }
 
 body.tc-dirty .tc-image-cloud-idle {
 	opacity: 0;
+  <<<<<<< allow-filter-duplicates
+  =======
+	display: none;
+  >>>>>>> new-json-store-area
 }
 
 body .tc-image-cloud-progress {
@@ -23,11 +32,19 @@ body .tc-image-cloud-progress {
 	transform: rotate(359deg);
 	animation: animation-rotate-slow 2s infinite linear;
 	fill: <<colour background>>;
+  <<<<<<< allow-filter-duplicates
+  =======
+	display: none;
+  >>>>>>> new-json-store-area
 	opacity: 0;
 }
 
 body.tc-dirty .tc-image-cloud-progress {
 	opacity: 1;
+  <<<<<<< allow-filter-duplicates
+  =======
+	display: unset;
+  >>>>>>> new-json-store-area
 }
 
 @keyframes animation-rotate-slow {

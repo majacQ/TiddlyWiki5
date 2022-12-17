@@ -4,6 +4,10 @@ title: $:/core/save/lazy-images
 [is[tiddler]] -[prefix[$:/state/popup/]] -[[$:/HistoryList]] -[[$:/boot/boot.css]] -[type[application/javascript]library[yes]] -[[$:/boot/boot.js]] -[[$:/boot/bootprefix.js]] -[!is[system]is[image]] +[sort[title]] 
 \end
 \define skinnySaveTiddlerFilter()
+  <<<<<<< allow-filter-duplicates
 [is[image]]
+  =======
+[!is[system]is[image]]
+  >>>>>>> new-json-store-area
 \end
 {{$:/core/templates/tiddlywiki5.html}}

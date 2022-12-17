@@ -101,7 +101,7 @@ exports.startup = function() {
 				updateHistory: $tw.wiki.getTiddlerText(CONFIG_UPDATE_HISTORY,"no").trim(),
 				targetTiddler: event.param || event.tiddlerTitle,
 				copyToClipboard: $tw.wiki.getTiddlerText(CONFIG_PERMALINKVIEW_COPY_TO_CLIPBOARD,"yes").trim() === "yes" ? "permaview" : "none"
-			});				
+			});
 		});
 	}
 };
@@ -150,6 +150,11 @@ function openStartupTiddlers(options) {
 	// Save the story list
 	$tw.wiki.addTiddler({title: DEFAULT_STORY_TITLE, text: "", list: storyList},$tw.wiki.getModificationFields());
 	// Update history
+	var story = new $tw.Story({
+		wiki: $tw.wiki,
+		storyTitle: DEFAULT_STORY_TITLE,
+		historyTitle: DEFAULT_HISTORY_TITLE
+	});
 	if(!options.disableHistory) {
 		// If a target tiddler was specified add it to the history stack
 		if(target && target !== "") {
@@ -157,10 +162,10 @@ function openStartupTiddlers(options) {
 			if(target.indexOf("[[") === 0 && target.substr(-2) === "]]") {
 				target = target.substr(2,target.length - 4);
 			}
-			$tw.wiki.addToHistory(target);
+			story.addToHistory(target);
 		} else if(storyList.length > 0) {
-			$tw.wiki.addToHistory(storyList[0]);
-		}		
+			story.addToHistory(storyList[0]);
+		}
 	}
 }
 

@@ -3,7 +3,11 @@ title: $:/core/modules/server/routes/get-tiddlers-json.js
 type: application/javascript
 module-type: route
 
+  <<<<<<< allow-filter-duplicates
 GET /recipes/default/tiddlers/tiddlers.json?filter=<filter>
+  =======
+GET /recipes/default/tiddlers.json?filter=<filter>
+  >>>>>>> new-json-store-area
 
 \*/
 (function() {
@@ -20,17 +24,31 @@ exports.path = /^\/recipes\/default\/tiddlers.json$/;
 
 exports.handler = function(request,response,state) {
 	var filter = state.queryParameters.filter || DEFAULT_FILTER;
+  <<<<<<< allow-filter-duplicates
 	if($tw.wiki.getTiddlerText("$:/config/Server/AllowAllExternalFilters") !== "yes") {
 		if($tw.wiki.getTiddlerText("$:/config/Server/ExternalFilters/" + filter) !== "yes") {
 			console.log("Blocked attempt to GET /recipes/default/tiddlers/tiddlers.json with filter: " + filter);
+  =======
+	if(state.wiki.getTiddlerText("$:/config/Server/AllowAllExternalFilters") !== "yes") {
+		if(state.wiki.getTiddlerText("$:/config/Server/ExternalFilters/" + filter) !== "yes") {
+			console.log("Blocked attempt to GET /recipes/default/tiddlers.json with filter: " + filter);
+  >>>>>>> new-json-store-area
 			response.writeHead(403);
 			response.end();
 			return;
 		}
 	}
+  <<<<<<< allow-filter-duplicates
 	var excludeFields = (state.queryParameters.exclude || "text").split(","),
 		titles = state.wiki.filterTiddlers(filter);
 	response.writeHead(200, {"Content-Type": "application/json"});
+  =======
+	if(state.wiki.getTiddlerText("$:/config/SyncSystemTiddlersFromServer") === "no") {
+		filter += "+[!is[system]]";
+	}
+	var excludeFields = (state.queryParameters.exclude || "text").split(","),
+		titles = state.wiki.filterTiddlers(filter);
+  >>>>>>> new-json-store-area
 	var tiddlers = [];
 	$tw.utils.each(titles,function(title) {
 		var tiddler = state.wiki.getTiddler(title);
@@ -42,7 +60,7 @@ exports.handler = function(request,response,state) {
 		}
 	});
 	var text = JSON.stringify(tiddlers);
-	response.end(text,"utf8");
+	state.sendResponse(200,{"Content-Type": "application/json"},text,"utf8");
 };
 
 }());
