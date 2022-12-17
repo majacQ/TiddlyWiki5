@@ -15,13 +15,25 @@ Browser HTTP support
 /*
 A quick and dirty HTTP function; to be refactored later. Options are:
 	url: URL to retrieve
+	headers: hashmap of headers to send
 	type: GET, PUT, POST etc
-	callback: function invoked with (err,data)
+	callback: function invoked with (err,data,xhr)
 	returnProp: string name of the property to return as first argument of callback
 */
 exports.httpRequest = function(options) {
 	var type = options.type || "GET",
+		url = options.url,
 		headers = options.headers || {accept: "application/json"},
+		hasHeader = function(targetHeader) {
+			targetHeader = targetHeader.toLowerCase();
+			var result = false;
+			$tw.utils.each(headers,function(header,headerTitle,object) {
+				if(headerTitle.toLowerCase() === targetHeader) {
+					result = true;
+				}
+			});
+			return result;
+		},
 		returnProp = options.returnProp || "responseText",
 		request = new XMLHttpRequest(),
 		data = "",
@@ -35,7 +47,11 @@ exports.httpRequest = function(options) {
 			$tw.utils.each(options.data,function(dataItem,dataItemTitle) {
 				results.push(dataItemTitle + "=" + encodeURIComponent(dataItem));
 			});
-			data = results.join("&");
+			if(type === "GET" || type === "HEAD") {
+				url += "?" + results.join("&");
+			} else {
+				data = results.join("&");
+			}
 		}
 	}
 	// Set up the state change handler
@@ -47,23 +63,26 @@ exports.httpRequest = function(options) {
 				return;
 			}
 		// Something went wrong
-		options.callback($tw.language.getString("Error/XMLHttpRequest") + ": " + this.status);
+		options.callback($tw.language.getString("Error/XMLHttpRequest") + ": " + this.status,null,this);
 		}
 	};
 	// Make the request
-	request.open(type,options.url,true);
+	request.open(type,url,true);
 	if(headers) {
 		$tw.utils.each(headers,function(header,headerTitle,object) {
 			request.setRequestHeader(headerTitle,header);
 		});
 	}
-	if(data && !$tw.utils.hop(headers,"Content-type")) {
-		request.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
+	if(data && !hasHeader("Content-Type")) {
+		request.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
+	}
+	if(!hasHeader("X-Requested-With")) {
+		request.setRequestHeader("X-Requested-With","TiddlyWiki");
 	}
 	try {
 		request.send(data);
 	} catch(e) {
-		options.callback(e);
+		options.callback(e,null,this);
 	}
 	return request;
 };

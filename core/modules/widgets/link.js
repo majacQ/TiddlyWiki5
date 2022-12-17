@@ -13,7 +13,6 @@ Link widget
 "use strict";
 
 var Widget = require("$:/core/modules/widgets/widget.js").widget;
-var MISSING_LINK_CONFIG_TITLE = "$:/config/MissingLinks";
 
 var LinkWidget = function(parseTreeNode,options) {
 	this.initialise(parseTreeNode,options);
@@ -61,7 +60,8 @@ LinkWidget.prototype.renderLink = function(parent,nextSibling) {
 		tag = "a";
 	}
 	// Create our element
-	var domNode = this.document.createElement(tag);
+	var namespace = this.getVariable("namespace",{defaultValue: "http://www.w3.org/1999/xhtml"}),
+		domNode = this.document.createElementNS(namespace,tag);
 	// Assign classes
 	var classes = [];
 	if(this.overrideClasses === undefined) {
@@ -103,7 +103,8 @@ LinkWidget.prototype.renderLink = function(parent,nextSibling) {
 	// Override with the value of tv-get-export-link if defined
 	wikiLinkText = this.getVariable("tv-get-export-link",{params: [{name: "to",value: this.to}],defaultValue: wikiLinkText});
 	if(tag === "a") {
-		domNode.setAttribute("href",wikiLinkText);
+		var namespaceHref = (namespace === "http://www.w3.org/2000/svg") ? "http://www.w3.org/1999/xlink" : undefined;
+		domNode.setAttributeNS(namespaceHref,"href",wikiLinkText);
 	}
 	// Set the tabindex
 	if(this.tabIndex) {
@@ -157,7 +158,8 @@ LinkWidget.prototype.handleClickEvent = function(event) {
 		metaKey: event.metaKey,
 		ctrlKey: event.ctrlKey,
 		altKey: event.altKey,
-		shiftKey: event.shiftKey
+		shiftKey: event.shiftKey,
+		event: event
 	});
 	if(this.domNodes[0].hasAttribute("href")) {
 		event.preventDefault();
@@ -182,9 +184,16 @@ LinkWidget.prototype.execute = function() {
 	// Determine the link characteristics
 	this.isMissing = !this.wiki.tiddlerExists(this.to);
 	this.isShadow = this.wiki.isShadowTiddler(this.to);
-	this.hideMissingLinks = ($tw.wiki.getTiddlerText(MISSING_LINK_CONFIG_TITLE,"yes") === "no");
+	this.hideMissingLinks = (this.getVariable("tv-show-missing-links") || "yes") === "no";
 	// Make the child widgets
-	this.makeChildWidgets();
+	var templateTree;
+	if(this.parseTreeNode.children && this.parseTreeNode.children.length > 0) {
+		templateTree = this.parseTreeNode.children;
+	} else {
+		// Default template is a link to the title
+		templateTree = [{type: "text", text: this.to}];
+	}
+	this.makeChildWidgets(templateTree);
 };
 
 /*
@@ -192,7 +201,7 @@ Selectively refreshes the widget if needed. Returns true if the widget or any of
 */
 LinkWidget.prototype.refresh = function(changedTiddlers) {
 	var changedAttributes = this.computeAttributes();
-	if(changedAttributes.to || changedTiddlers[this.to] || changedAttributes["aria-label"] || changedAttributes.tooltip || changedTiddlers[MISSING_LINK_CONFIG_TITLE]) {
+	if(changedAttributes.to || changedTiddlers[this.to] || changedAttributes["aria-label"] || changedAttributes.tooltip) {
 		this.refreshSelf();
 		return true;
 	}

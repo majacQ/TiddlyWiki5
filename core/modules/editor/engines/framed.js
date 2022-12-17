@@ -70,13 +70,26 @@ function FramedEngine(options) {
 	if(this.widget.editRows) {
 		this.domNode.setAttribute("rows",this.widget.editRows);
 	}
+	if(this.widget.editDir) {
+		this.domNode.setAttribute("dir",this.widget.editDir);
+	}
+	if(this.widget.editTabIndex) {
+		this.iframeNode.setAttribute("tabindex",this.widget.editTabIndex);
+	}
+	if(this.widget.editAutoComplete) {
+		this.domNode.setAttribute("autocomplete",this.widget.editAutoComplete);
+	}
+	if(this.widget.isDisabled === "yes") {
+		this.domNode.setAttribute("disabled",true);
+	}	
 	// Copy the styles from the dummy textarea
 	this.copyStyles();
 	// Add event listeners
 	$tw.utils.addEventListeners(this.domNode,[
 		{name: "click",handlerObject: this,handlerMethod: "handleClickEvent"},
 		{name: "input",handlerObject: this,handlerMethod: "handleInputEvent"},
-		{name: "keydown",handlerObject: this.widget,handlerMethod: "handleKeydownEvent"}
+		{name: "keydown",handlerObject: this.widget,handlerMethod: "handleKeydownEvent"},
+		{name: "focus",handlerObject: this,handlerMethod: "handleFocusEvent"}
 	]);
 	// Insert the element into the DOM
 	this.iframeDoc.body.appendChild(this.domNode);
@@ -92,6 +105,12 @@ FramedEngine.prototype.copyStyles = function() {
 	this.domNode.style.display = "block";
 	this.domNode.style.width = "100%";
 	this.domNode.style.margin = "0";
+  <<<<<<< bidi-improvements
+	this.domNode.style["background-color"] = this.widget.wiki.extractTiddlerDataItem(this.widget.wiki.getTiddlerText("$:/palette"),"tiddler-editor-background");
+	this.domNode.style.direction = "";
+	this.domNode.style.unicodeBidi = "";
+  =======
+  >>>>>>> external-tasks
 	// In Chrome setting -webkit-text-fill-color overrides the placeholder text colour
 	this.domNode.style["-webkit-text-fill-color"] = "currentcolor";
 };
@@ -102,11 +121,18 @@ Set the text of the engine if it doesn't currently have focus
 FramedEngine.prototype.setText = function(text,type) {
 	if(!this.domNode.isTiddlyWikiFakeDom) {
 		if(this.domNode.ownerDocument.activeElement !== this.domNode) {
-			this.domNode.value = text;
+			this.updateDomNodeText(text);
 		}
 		// Fix the height if needed
 		this.fixHeight();
 	}
+};
+
+/*
+Update the DomNode with the new text
+*/
+FramedEngine.prototype.updateDomNodeText = function(text) {
+	this.domNode.value = text;
 };
 
 /*
@@ -149,6 +175,15 @@ FramedEngine.prototype.focus  = function() {
 };
 
 /*
+Handle a focus event
+*/
+FramedEngine.prototype.handleFocusEvent = function(event) {
+	if(this.widget.editCancelPopups) {
+		$tw.popup.cancel(0);	
+	}
+};
+
+/*
 Handle a click
 */
 FramedEngine.prototype.handleClickEvent = function(event) {
@@ -162,6 +197,9 @@ Handle a dom "input" event which occurs when the text has changed
 FramedEngine.prototype.handleInputEvent = function(event) {
 	this.widget.saveChanges(this.getText());
 	this.fixHeight();
+	if(this.widget.editInputActions) {
+		this.widget.invokeActionString(this.widget.editInputActions);
+	}
 	return true;
 };
 

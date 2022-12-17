@@ -19,7 +19,7 @@ exports.after = ["startup"];
 exports.synchronous = true;
 
 // Global to keep track of open windows (hashmap by title)
-var windows = {};
+$tw.windows = {};
 
 exports.startup = function() {
 	// Handle open window message
@@ -28,15 +28,24 @@ exports.startup = function() {
 		var refreshHandler,
 			title = event.param || event.tiddlerTitle,
 			paramObject = event.paramObject || {},
+			windowTitle = paramObject.windowTitle || title,
 			template = paramObject.template || "$:/core/templates/single.tiddler.window",
 			print = paramObject.print === "yes",
 			width = paramObject.width || "700",
 			height = paramObject.height || "600",
 			variables = $tw.utils.extend({},paramObject,{currentTiddler: title});
 		// Open the window
-		var srcWindow = window.open("","external-" + title,"scrollbars,width=" + width + ",height=" + height),
+		var srcWindow,
+		    srcDocument;
+		// In case that popup blockers deny opening a new window
+		try {
+			srcWindow = window.open("","external-" + title,"scrollbars,width=" + width + ",height=" + height),
 			srcDocument = srcWindow.document;
-		windows[title] = srcWindow;
+		}
+		catch(e) {
+			return;
+		}
+		$tw.windows[title] = srcWindow;
 		// Check for reopening the same window
 		if(srcWindow.haveInitialisedWindow) {
 			return;
@@ -44,9 +53,9 @@ exports.startup = function() {
 		// Initialise the document
 		srcDocument.write("<html><head></head><body class='tc-body tc-single-tiddler-window'></body></html>");
 		srcDocument.close();
-		srcDocument.title = title;
+		srcDocument.title = windowTitle;
 		srcWindow.addEventListener("beforeunload",function(event) {
-			delete windows[title];
+			delete $tw.windows[title];
 			$tw.wiki.removeEventListener("change",refreshHandler);
 		},false);
 		// Set up the styles
@@ -75,11 +84,18 @@ exports.startup = function() {
 			widgetNode.refresh(changes);
 		};
 		$tw.wiki.addEventListener("change",refreshHandler);
+		// Listen for keyboard shortcuts
+		$tw.utils.addEventListeners(srcDocument,[{
+			name: "keydown",
+			handlerObject: $tw.keyboardManager,
+			handlerMethod: "handleKeydownEvent"
+		}]);
+		srcWindow.document.documentElement.addEventListener("click",$tw.popup,true);
 		srcWindow.haveInitialisedWindow = true;
 	});
 	// Close open windows when unloading main window
 	$tw.addUnloadTask(function() {
-		$tw.utils.each(windows,function(win) {
+		$tw.utils.each($tw.windows,function(win) {
 			win.close();
 		});
 	});

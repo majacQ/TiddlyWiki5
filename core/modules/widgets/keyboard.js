@@ -46,13 +46,15 @@ KeyboardWidget.prototype.render = function(parent,nextSibling) {
 	// Add a keyboard event handler
 	domNode.addEventListener("keydown",function (event) {
 		if($tw.keyboardManager.checkKeyDescriptors(event,self.keyInfoArray)) {
-			self.invokeActions(self,event);
+			var handled = self.invokeActions(self,event);
 			if(self.actions) {
 				self.invokeActionString(self.actions,self,event);
 			}
 			self.dispatchMessage(event);
-			event.preventDefault();
-			event.stopPropagation();
+			if(handled || self.actions || self.message) {
+				event.preventDefault();
+				event.stopPropagation();
+			}
 			return true;
 		}
 		return false;
@@ -71,14 +73,22 @@ KeyboardWidget.prototype.dispatchMessage = function(event) {
 Compute the internal state of the widget
 */
 KeyboardWidget.prototype.execute = function() {
+	var self = this;
 	// Get attributes
-	this.actions = this.getAttribute("actions");
-	this.message = this.getAttribute("message");
-	this.param = this.getAttribute("param");
-	this.key = this.getAttribute("key");
-	this.tag = this.getAttribute("tag");
+	this.actions = this.getAttribute("actions","");
+	this.message = this.getAttribute("message","");
+	this.param = this.getAttribute("param","");
+	this.key = this.getAttribute("key","");
+	this.tag = this.getAttribute("tag","");
 	this.keyInfoArray = $tw.keyboardManager.parseKeyDescriptors(this.key);
-	this["class"] = this.getAttribute("class");
+	this["class"] = this.getAttribute("class","");
+	if(this.key.substr(0,2) === "((" && this.key.substr(-2,2) === "))") {
+		this.shortcutTiddlers = [];
+		var name = this.key.substring(2,this.key.length -2);
+		$tw.utils.each($tw.keyboardManager.lookupNames,function(platformDescriptor) {
+			self.shortcutTiddlers.push("$:/config/" + platformDescriptor + "/" + name);
+		});
+	}
 	// Make child widgets
 	this.makeChildWidgets();
 };
@@ -91,6 +101,10 @@ KeyboardWidget.prototype.refresh = function(changedTiddlers) {
 	if(changedAttributes.message || changedAttributes.param || changedAttributes.key || changedAttributes["class"] || changedAttributes.tag) {
 		this.refreshSelf();
 		return true;
+	}
+	// Update the keyInfoArray if one of its shortcut-config-tiddlers has changed
+	if(this.shortcutTiddlers && $tw.utils.hopArray(changedTiddlers,this.shortcutTiddlers)) {
+		this.keyInfoArray = $tw.keyboardManager.parseKeyDescriptors(this.key);
 	}
 	return this.refreshChildren(changedTiddlers);
 };

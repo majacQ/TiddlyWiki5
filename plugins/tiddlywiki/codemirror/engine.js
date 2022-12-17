@@ -106,15 +106,26 @@ function CodeMirrorEngine(options) {
 
 	config.mode = options.type;
 	config.value = options.value;
+	if(this.widget.editTabIndex) {
+		config["tabindex"] = this.widget.editTabIndex;
+	}
+	if(this.widget.editDir) {
+		config.direction = this.widget.editDir;
+	}
 	// Create the CodeMirror instance
 	this.cm = window.CodeMirror(function(cmDomNode) {
 		// Note that this is a synchronous callback that is called before the constructor returns
-		self.domNode.appendChild(cmDomNode);
+		if(!self.widget.document.isTiddlyWikiFakeDom) {
+			self.domNode.appendChild(cmDomNode);
+		}
 	},config);
 
 	// Set up a change event handler
 	this.cm.on("change",function() {
 		self.widget.saveChanges(self.getText());
+		if(self.widget.editInputActions) {
+			self.widget.invokeActionString(self.widget.editInputActions);
+		}
 	});
 	this.cm.on("drop",function(cm,event) {
 		event.stopPropagation(); // Otherwise TW's dropzone widget sees the drop event
@@ -122,6 +133,11 @@ function CodeMirrorEngine(options) {
 	});
 	this.cm.on("keydown",function(cm,event) {
 		return self.widget.handleKeydownEvent.call(self.widget,event);
+	});
+	this.cm.on("focus",function(cm,event) {
+		if(self.widget.editCancelPopups) {
+			$tw.popup.cancel(0);	
+		}
 	});
 }
 
@@ -132,8 +148,15 @@ CodeMirrorEngine.prototype.setText = function(text,type) {
 	var self = this;
 	self.cm.setOption("mode",type);
 	if(!this.cm.hasFocus()) {
-		this.cm.setValue(text);
+		this.updateDomNodeText(text);
 	}
+};
+
+/*
+Update the DomNode with the new text
+*/
+CodeMirrorEngine.prototype.updateDomNodeText = function(text) {
+	this.cm.setValue(text);
 };
 
 /*
