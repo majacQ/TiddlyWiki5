@@ -8,13 +8,14 @@ CloseAll/Button: Cerrar todo
 ColourPicker/Recent: Recientes:
 ConfirmCancelTiddler: ¿Deseas descartar los cambios efectuados en "<$text text=<<title>>/>"?
 ConfirmDeleteTiddler: ¿Deseas borrar "<$text text=<<title>>/>"?
+ConfirmDeleteTiddlers: ¿Deseas borrar <<resultCount>> tiddler(s)?
 ConfirmOverwriteTiddler: ¿Deseas sobrescribir "<$text text=<<title>>/>"?
 ConfirmEditShadowTiddler: Estás a punto de editar un tiddler oculto<br> Todo cambio en él afectará al sistema por defecto y pondrá en riesgo futuras actualizaciones del sistema<br> ¿Estás seguro de querer editar "<$text text=<<title>>/>"?
 ConfirmAction: ¿Desea continuar?
 Count: Número
 DefaultNewTiddlerTitle: Nuevo Tiddler
 Diffs/CountMessage: <<diff-count>> diferencias
-DropMessage: Suéltalo aquí o pulsa ''ESC'' para cancelar
+DropMessage: Suéltalo ahora o pulsa ''ESC'' para cancelar
 Encryption/Cancel: Cancelar
 Encryption/ConfirmClearPassword: ¿Deseas borrar la contraseña? <br> Revocarás el cifrado que se aplica para guardar este wiki
 Encryption/PromptSetPassword: Especifica nueva contraseña para este TiddlyWiki
@@ -41,7 +42,6 @@ Error/WhileSaving: Error al guardar
 Error/XMLHttpRequest: Código de error XMLHttpRequest
 InternalJavaScriptError/Hint: Hay un problema. Se recomienda que reinicies TiddlyWiki
 InternalJavaScriptError/Title: Error interno de JavaScript
-InvalidFieldName: Caracteres ilegales en el campo "<$text text=<<fieldName>>/>"<br> Los campos sólo pueden contener letras en minúscula, dígitos y los caracteres guión bajo (`_`), guión corto (`-`) y punto (`.`)
 LayoutSwitcher/Description: Abre el selector de diseño
 LazyLoadingWarning: <p>Cargando texto externo desde ''<$text text={{!!_canonical_uri}}/>''</p><p>Si este mensaje no desaparece, puede que se deba a que estás usando un navegador que con esta configuración no permite texto externo</br> Vea https://tiddlywiki.com/#ExternalText</p>
 LoginToTiddlySpace: Inicia sesión en TiddlySpace

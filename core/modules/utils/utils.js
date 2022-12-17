@@ -96,6 +96,20 @@ exports.repeat = function(str,count) {
 };
 
 /*
+Check if a string starts with another string
+*/
+exports.startsWith = function(str,search) {
+	return str.substring(0, search.length) === search;
+};
+
+/*
+Check if a string ends with another string
+*/
+exports.endsWith = function(str,search) {
+	return str.substring(str.length - search.length) === search;
+};
+
+/*
 Trim whitespace from the start and end of a string
 Thanks to Steven Levithan, http://blog.stevenlevithan.com/archives/faster-trim-javascript
 */
@@ -223,6 +237,7 @@ exports.removeArrayEntries = function(array,value) {
 			array.splice(p,1);
 		}
 	}
+	return array;
 };
 
 /*
@@ -339,6 +354,9 @@ exports.formatDateString = function(date,template) {
 	var result = "",
 		t = template,
 		matches = [
+			[/^TIMESTAMP/, function() {
+				return date.getTime();
+			}],
 			[/^0hh12/, function() {
 				return $tw.utils.pad($tw.utils.getHours12(date));
 			}],
@@ -381,6 +399,15 @@ exports.formatDateString = function(date,template) {
 			}],
 			[/^0WW/, function() {
 				return $tw.utils.pad($tw.utils.getWeek(date));
+			}],
+			[/^0ddddd/, function() {
+				return $tw.utils.pad(Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24),3);
+			}],
+			[/^ddddd/, function() {
+				return Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+			}],
+			[/^dddd/, function() {
+				return [7,1,2,3,4,5,6][date.getDay()];
 			}],
 			[/^ddd/, function() {
 				return $tw.language.getString("Date/Short/Day/" + date.getDay());
@@ -438,7 +465,7 @@ exports.formatDateString = function(date,template) {
 	// 'return raw UTC (tiddlywiki style) date string.'
 	if(t.indexOf("[UTC]") == 0 ) {
 		if(t == "[UTC]YYYY0MM0DD0hh0mm0ssXXX")
-			return $tw.utils.stringifyDate(new Date());
+			return $tw.utils.stringifyDate(date || new Date());
 		var offset = date.getTimezoneOffset() ; // in minutes
 		date = new Date(date.getTime()+offset*60*1000) ;
 		t = t.substr(5) ;
@@ -740,9 +767,8 @@ exports.isValidFieldName = function(name) {
 	if(!name || typeof name !== "string") {
 		return false;
 	}
-	name = name.toLowerCase().trim();
-	var fieldValidatorRegEx = /^[a-z0-9\-\._]+$/mg;
-	return fieldValidatorRegEx.test(name);
+	// Since v5.2.x, there are no restrictions on characters in field names
+	return name;
 };
 
 /*

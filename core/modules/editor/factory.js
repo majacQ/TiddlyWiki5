@@ -115,7 +115,7 @@ function editTextWidgetFactory(toolbarEngine,nonToolbarEngine) {
 				// Otherwise, we need to construct a default value for the editor
 				switch(this.editField) {
 					case "text":
-						value = "Type the text for the tiddler '" + this.editTitle + "'";
+						value = "";
 						type = "text/vnd.tiddlywiki";
 						break;
 					case "title":
@@ -298,7 +298,7 @@ function editTextWidgetFactory(toolbarEngine,nonToolbarEngine) {
 	Propogate keydown events to our container for the keyboard widgets benefit
 	*/
 	EditTextWidget.prototype.propogateKeydownEvent = function(event) {
-		var newEvent = this.cloneEvent(event,["keyCode","which","metaKey","ctrlKey","altKey","shiftKey"]);
+		var newEvent = this.cloneEvent(event,["keyCode","code","which","key","metaKey","ctrlKey","altKey","shiftKey"]);
 		return !this.parentDomNode.dispatchEvent(newEvent);
 	};
 
@@ -324,7 +324,7 @@ function editTextWidgetFactory(toolbarEngine,nonToolbarEngine) {
 	If there are no Files, let the browser handle it.
 	*/
 	EditTextWidget.prototype.handleDropEvent = function(event) {
-		if(event.dataTransfer.files.length) {
+		if($tw.utils.dragEventContainsFiles(event)) {
 			event.preventDefault();
 			event.stopPropagation();
 			this.dispatchDOMEvent(this.cloneEvent(event,["dataTransfer"]));
@@ -332,7 +332,7 @@ function editTextWidgetFactory(toolbarEngine,nonToolbarEngine) {
 	};
 
 	EditTextWidget.prototype.handlePasteEvent = function(event) {
-		if(event.clipboardData.files.length) {
+		if(event.clipboardData && event.clipboardData.files && event.clipboardData.files.length) {
 			event.preventDefault();
 			event.stopPropagation();
 			this.dispatchDOMEvent(this.cloneEvent(event,["clipboardData"]));
