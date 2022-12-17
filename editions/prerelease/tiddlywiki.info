@@ -14,7 +14,8 @@
 		"tiddlywiki/dynaview",
 		"tiddlywiki/dynannotate",
 		"tiddlywiki/comments",
-		"tiddlywiki/menubar"
+		"tiddlywiki/menubar",
+		"tiddlywiki/jszip"
 	],
 	"themes": [
 		"tiddlywiki/vanilla",

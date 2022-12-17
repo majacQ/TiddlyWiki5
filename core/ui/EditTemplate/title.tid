@@ -1,7 +1,11 @@
 title: $:/core/ui/EditTemplate/title
 tags: $:/tags/EditTemplate
 
+  <<<<<<< bidi-improvements
 <$edit-text field="draft.title" class="tc-titlebar tc-edit-texteditor" focus={{{ [{$:/config/AutoFocus}match[title]then[true]] ~[[false]] }}} tabindex={{$:/config/EditTabIndex}} dir={{$:/config/DefaultTextDirection}}/>
+  =======
+<$edit-text field="draft.title" class="tc-titlebar tc-edit-texteditor" focus={{{ [{$:/config/AutoFocus}match[title]then[true]] ~[[false]] }}} tabindex={{$:/config/EditTabIndex}} cancelPopups="yes"/>
+  >>>>>>> external-tasks
 
 <$vars pattern="""[\|\[\]{}]""" bad-chars="""`| [ ] { }`""">
 

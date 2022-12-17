@@ -378,10 +378,10 @@ exports.sortTiddlers = function(titles,sortField,isDescending,isCaseSensitive,is
 		y = Number(b);
 		if(isNumeric && (!isNaN(x) || !isNaN(y))) {
 			return compareNumbers(x,y);
-		} else if(isAlphaNumeric) {
-			return isDescending ? b.localeCompare(a,undefined,{numeric: true,sensitivity: "base"}) : a.localeCompare(b,undefined,{numeric: true,sensitivity: "base"});
 		} else if($tw.utils.isDate(a) && $tw.utils.isDate(b)) {
 			return isDescending ? b - a : a - b;
+		} else if(isAlphaNumeric) {
+			return isDescending ? b.localeCompare(a,undefined,{numeric: true,sensitivity: "base"}) : a.localeCompare(b,undefined,{numeric: true,sensitivity: "base"});
 		} else {
 			a = String(a);
 			b = String(b);
@@ -580,7 +580,9 @@ Sorts an array of tiddler titles according to an ordered list
 exports.sortByList = function(array,listTitle) {
 	var self = this,
 		replacedTitles = Object.create(null);
-	function replaceItem(title) {
+	// Given a title, this function will place it in the correct location
+	// within titles.
+	function moveItemInList(title) {
 		if(!$tw.utils.hop(replacedTitles, title)) {
 			replacedTitles[title] = true;
 			var newPos = -1,
@@ -593,26 +595,37 @@ exports.sortByList = function(array,listTitle) {
 				} else if(afterTitle === "") {
 					newPos = titles.length;
 				} else if(beforeTitle) {
-					replaceItem(beforeTitle);
+					// if this title is placed relative
+					// to another title, make sure that
+					// title is placed before we place
+					// this one.
+					moveItemInList(beforeTitle);
 					newPos = titles.indexOf(beforeTitle);
 				} else if(afterTitle) {
-					replaceItem(afterTitle);
+					// Same deal
+					moveItemInList(afterTitle);
 					newPos = titles.indexOf(afterTitle);
 					if(newPos >= 0) {
 						++newPos;
 					}
 				}
-				// We get the currPos //after// figuring out the newPos, because recursive replaceItem calls might alter title's currPos
-				var currPos = titles.indexOf(title);
-				if(newPos === -1) {
-					newPos = currPos;
-				}
-				if(currPos >= 0 && newPos !== currPos) {
-					titles.splice(currPos,1);
-					if(newPos >= currPos) {
-						newPos--;
+				// If a new position is specified, let's move it
+				if (newPos !== -1) {
+					// get its current Pos, and make sure
+					// sure that it's _actually_ in the list
+					// and that it would _actually_ move
+					// (#4275) We don't bother calling
+					//         indexOf unless we have a new
+					//         position to work with
+					var currPos = titles.indexOf(title);
+					if(currPos >= 0 && newPos !== currPos) {
+						// move it!
+						titles.splice(currPos,1);
+						if(newPos >= currPos) {
+							newPos--;
+						}
+						titles.splice(newPos,0,title);
 					}
-					titles.splice(newPos,0,title);
 				}
 			}
 		}
@@ -640,7 +653,7 @@ exports.sortByList = function(array,listTitle) {
 		var sortedTitles = titles.slice(0);
 		for(t=0; t<sortedTitles.length; t++) {
 			title = sortedTitles[t];
-			replaceItem(title);
+			moveItemInList(title);
 		}
 		return titles;
 	}
@@ -991,6 +1004,7 @@ title: target tiddler title
 options: as for wiki.makeWidget() plus:
 options.field: optional field to transclude (defaults to "text")
 options.mode: transclusion mode "inline" or "block"
+options.recursionMarker : optional flag to set a recursion marker, defaults to "yes"
 options.children: optional array of children for the transclude widget
 options.importVariables: optional importvariables filter string for macros to be included
 options.importPageMacros: optional boolean; if true, equivalent to passing "[[$:/core/ui/PageMacros]] [all[shadows+tiddlers]tag[$:/tags/Macro]!has[draft.of]]" to options.importVariables
@@ -1014,10 +1028,17 @@ exports.makeTranscludeWidget = function(title,options) {
 		parseTreeTransclude = {
 			type: "transclude",
 			attributes: {
+				recursionMarker: {
+					name: "recursionMarker",
+					type: "string",
+					value: options.recursionMarker || "yes"
+					},
 				tiddler: {
 					name: "tiddler",
 					type: "string",
-					value: title}},
+					value: title
+				}
+			},
 			isBlock: !options.parseAsInline};
 	if(options.importVariables || options.importPageMacros) {
 		if(options.importVariables) {
@@ -1039,7 +1060,7 @@ exports.makeTranscludeWidget = function(title,options) {
 	if(options.children) {
 		parseTreeTransclude.children = options.children;
 	}
-	return $tw.wiki.makeWidget(parseTreeDiv,options);
+	return this.makeWidget(parseTreeDiv,options);
 };
 
 /*
@@ -1221,7 +1242,7 @@ exports.search = function(text,options) {
 	var results = [],
 		source = options.source || this.each;
 	source(function(tiddler,title) {
-		if(searchTiddler(title) !== options.invert) {
+		if(searchTiddler(title) !== invert) {
 			results.push(title);
 		}
 	});
@@ -1349,7 +1370,7 @@ exports.readFileContent = function(file,type,isBinary,deserializer,callback) {
 	// Onload
 	reader.onload = function(event) {
 		var text = event.target.result,
-			tiddlerFields = {title: file.name || "Untitled", type: type};
+			tiddlerFields = {title: file.name || "Untitled"};
 		if(isBinary) {
 			var commaPos = text.indexOf(",");
 			if(commaPos !== -1) {
@@ -1413,7 +1434,8 @@ historyTitle: title of history tiddler (defaults to $:/HistoryList)
 */
 exports.addToHistory = function(title,fromPageRect,historyTitle) {
 	var story = new $tw.Story({wiki: this, historyTitle: historyTitle});
-	story.addToHistory(title,fromPageRect);		
+	story.addToHistory(title,fromPageRect);	
+	console.log("$tw.wiki.addToHistory() is deprecated since V5.1.23! Use the this.story.addToHistory() from the story-object!")
 };
 
 /*
@@ -1425,7 +1447,8 @@ options: see story.js
 */
 exports.addToStory = function(title,fromTitle,storyTitle,options) {
 	var story = new $tw.Story({wiki: this, storyTitle: storyTitle});
-	story.addToStory(title,fromTitle,options);		
+	story.addToStory(title,fromTitle,options);
+	console.log("$tw.wiki.addToStory() is deprecated since V5.1.23! Use the this.story.addToStory() from the story-object!")
 };
 
 /*
@@ -1488,6 +1511,31 @@ exports.doesPluginInfoRequireReload = function(pluginInfo) {
 	} else {
 		return null;
 	}
+};
+
+exports.slugify = function(title,options) {
+	var tiddler = this.getTiddler(title),
+		slug;
+	if(tiddler && tiddler.fields.slug) {
+		slug = tiddler.fields.slug;
+	} else {
+		slug = $tw.utils.transliterate(title.toString().toLowerCase()) // Replace diacritics with basic lowercase ASCII
+			.replace(/\s+/g,"-")                                       // Replace spaces with -
+			.replace(/[^\w\-\.]+/g,"")                                 // Remove all non-word chars except dash and dot
+			.replace(/\-\-+/g,"-")                                     // Replace multiple - with single -
+			.replace(/^-+/,"")                                         // Trim - from start of text
+			.replace(/-+$/,"");                                        // Trim - from end of text
+	}
+	// If the resulting slug is blank (eg because the title is just punctuation characters)
+	if(!slug) {
+		// ...then just use the character codes of the title
+		var result = [];
+		$tw.utils.each(title.split(""),function(char) {
+			result.push(char.charCodeAt(0).toString());
+		});
+		slug = result.join("-");
+	}
+	return slug;
 };
 
 })();
