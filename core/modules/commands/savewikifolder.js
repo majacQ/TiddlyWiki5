@@ -97,7 +97,7 @@ WikiFolderMaker.prototype.save = function() {
 						// A custom plugin
 						self.log("Processing custom plugin: " + title);
 						self.saveCustomPlugin(tiddler);
-					}				
+					}
 				} else {
 					// Ordinary tiddler
 					self.saveTiddler("tiddlers",tiddler);
@@ -151,7 +151,7 @@ WikiFolderMaker.prototype.saveCustomPlugin = function(pluginTiddler) {
 		pluginInfo = pluginTiddler.getFieldStrings({exclude: ["text","type"]});
 	this.saveJSONFile(directory + path.sep + "plugin.info",pluginInfo);
 	self.log("Writing " + directory + path.sep + "plugin.info: " + JSON.stringify(pluginInfo,null,$tw.config.preferences.jsonSpaces));
-	var pluginTiddlers = JSON.parse(pluginTiddler.fields.text).tiddlers; // A hashmap of tiddlers in the plugin
+	var pluginTiddlers = $tw.utils.parseJSONSafe(pluginTiddler.fields.text).tiddlers; // A hashmap of tiddlers in the plugin
 	$tw.utils.each(pluginTiddlers,function(tiddler) {
 		self.saveTiddler(directory,new $tw.Tiddler(tiddler));
 	});
@@ -167,10 +167,10 @@ WikiFolderMaker.prototype.saveTiddler = function(directory,tiddler) {
 	}
 	var fileInfo = $tw.utils.generateTiddlerFileInfo(tiddler,{
 		directory: path.resolve(this.wikiFolderPath,directory),
-		wiki: this.wiki,
 		pathFilters: pathFilters,
 		extFilters: extFilters,
-		originalpath: this.wiki.extractTiddlerDataItem("$:/config/OriginalTiddlerPaths",title, "")
+		wiki: this.wiki,
+		fileInfo: {}
 	});
 	try {
 		$tw.utils.saveTiddlerToFileSync(tiddler,fileInfo);

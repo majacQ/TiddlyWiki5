@@ -50,7 +50,7 @@ UploadSaver.prototype.save = function(text,method,callback) {
 		url = "http://" + username + ".tiddlyspot.com/store.cgi";
 	}
 	// Assemble the header
-	var boundary = "---------------------------" + "AaB03x";	
+	var boundary = "---------------------------" + "AaB03x";
 	var uploadFormName = "UploadPlugin";
 	var head = [];
 	head.push("--" + boundary + "\r\nContent-disposition: form-data; name=\"UploadPlugin\"\r\n");
@@ -64,6 +64,7 @@ UploadSaver.prototype.save = function(text,method,callback) {
 	var tail = "\r\n--" + boundary + "--\r\n",
 		data = head.join("\r\n") + text + tail;
 	// Do the HTTP post
+	$tw.notifier.display("$:/language/Notifications/Save/Starting");
 	var http = new XMLHttpRequest();
 	http.open("POST",url,true,username,password);
 	http.setRequestHeader("Content-Type","multipart/form-data; charset=UTF-8; boundary=" + boundary);
@@ -81,7 +82,6 @@ UploadSaver.prototype.save = function(text,method,callback) {
 	} catch(ex) {
 		return callback($tw.language.getString("Error/Caption") + ":" + ex);
 	}
-	$tw.notifier.display("$:/language/Notifications/Save/Starting");
 	return true;
 };
 
