@@ -17,11 +17,21 @@ exports.name = "favicon";
 exports.platforms = ["browser"];
 exports.after = ["startup"];
 exports.synchronous = true;
-		
+
 // Favicon tiddler
 var FAVICON_TITLE = "$:/favicon.ico";
 
 exports.startup = function() {
+	var setFavicon = function() {
+		var tiddler = $tw.wiki.getTiddler(FAVICON_TITLE);
+		if(tiddler) {
+			var faviconLink = document.getElementById("faviconLink"),
+				dataURI = $tw.utils.makeDataUri(tiddler.fields.text,tiddler.fields.type,tiddler.fields._canonical_uri);
+			faviconLink.setAttribute("href",dataURI);
+			$tw.faviconPublisher.send({verb: "FAVICON",body: dataURI});
+		}
+	}
+	$tw.faviconPublisher = new $tw.utils.BrowserMessagingPublisher({type: "FAVICON", onsubscribe: setFavicon});
 	// Set up the favicon
 	setFavicon();
 	// Reset the favicon when the tiddler changes
@@ -31,13 +41,5 @@ exports.startup = function() {
 		}
 	});
 };
-
-function setFavicon() {
-	var tiddler = $tw.wiki.getTiddler(FAVICON_TITLE);
-	if(tiddler) {
-		var faviconLink = document.getElementById("faviconLink");
-		faviconLink.setAttribute("href","data:" + tiddler.fields.type + ";base64," + tiddler.fields.text);
-	}
-}
 
 })();
