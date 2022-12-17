@@ -1682,6 +1682,10 @@ html body.tc-body.tc-single-tiddler-window {
 	padding-left: 14px;
 }
 
+.tc-drop-down .tc-drop-down-info {
+	padding-left: 14px;
+}
+
 .tc-drop-down p {
 	padding: 0 14px 0 14px;
 }
@@ -2269,7 +2273,11 @@ html body.tc-body.tc-single-tiddler-window {
 	position: absolute;
 	top: 7px;
 	right: 7px;
+  <<<<<<< allow-filter-duplicates
+    line-height: 0;
+  =======
 	line-height: 0;
+ >>>>>>> new-json-store-area
 }
 
 .tc-alert-toolbar svg {
@@ -2279,8 +2287,13 @@ html body.tc-body.tc-single-tiddler-window {
 .tc-alert-subtitle {
 	color: <<colour alert-muted-foreground>>;
 	font-weight: bold;
+  <<<<<<< allow-filter-duplicates
+    font-size: 0.8em;
+    margin-bottom: 0.5em;
+  =======
 	font-size: 0.8em;
 	margin-bottom: 0.5em;
+ >>>>>>> new-json-store-area
 }
 
 .tc-alert-body > p {

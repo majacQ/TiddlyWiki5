@@ -17,9 +17,13 @@ if($tw.node) {
 		fs = require("fs"),
 		url = require("url"),
 		path = require("path"),
+  <<<<<<< allow-filter-duplicates
+		querystring = require("querystring");
+  =======
 		querystring = require("querystring"),
 		crypto = require("crypto"),
 		zlib = require("zlib");
+ >>>>>>> new-json-store-area
 }
 
 /*
@@ -236,8 +240,11 @@ Server.prototype.requestHandler = function(request,response,options) {
 	state.server = self;
 	state.urlInfo = url.parse(request.url);
 	state.queryParameters = querystring.parse(state.urlInfo.query);
+  <<<<<<< allow-filter-duplicates
+  =======
 	state.pathPrefix = options.pathPrefix || this.get("path-prefix") || "";
 	state.sendResponse = sendResponse.bind(self,request,response);
+  >>>>>>> new-json-store-area
 	// Get the principals authorized to access this resource
 	var authorizationType = this.methodMappings[request.method] || "readers";
 	// Check for the CSRF header if this is a write

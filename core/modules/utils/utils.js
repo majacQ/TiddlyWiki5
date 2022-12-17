@@ -902,6 +902,8 @@ exports.getSystemInfo = function(str,ending,position) {
 	return results.join("\n");
 };
 
+  <<<<<<< allow-filter-duplicates
+  =======
 exports.parseNumber = function(str) {
 	return parseFloat(str) || 0;
 };
@@ -968,4 +970,5 @@ exports.makeCompareFunction = function(type,options) {
 	return (types[type] || types[options.defaultType] || types.number);
 };
 
+  >>>>>>> new-json-store-area
 })();

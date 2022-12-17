@@ -45,7 +45,11 @@ Logger.prototype.log = function(/* args */) {
 				self.saveBufferLogger.buffer += " " + arg;
 			});
 			this.saveBufferLogger.buffer += "\n";
+  <<<<<<< allow-filter-duplicates
+			this.saveBufferLogger.buffer = this.saveBufferLogger.buffer.slice(-this.saveBufferLogger.saveLimit);			
+  =======
 			this.saveBufferLogger.buffer = this.saveBufferLogger.buffer.slice(-this.saveBufferLogger.saveLimit);
+  >>>>>>> new-json-store-area
 		}
 		if(console !== undefined && console.log !== undefined) {
 			return Function.apply.call(console.log, console, [$tw.utils.terminalColour(this.colour),this.componentName + ":"].concat(Array.prototype.slice.call(arguments,0)).concat($tw.utils.terminalColour()));
@@ -112,6 +116,22 @@ Logger.prototype.alert = function(/* args */) {
 			// Print an orange message to the console if not in the browser
 			console.error("\x1b[1;33m" + text + "\x1b[0m");
 		}
+	}
+};
+
+/*
+Clear outstanding alerts
+*/
+Logger.prototype.clearAlerts = function() {
+	var self = this;
+	if($tw.browser && this.alertCount > 0) {
+		$tw.utils.each($tw.wiki.getTiddlersWithTag(ALERT_TAG),function(title) {
+			var tiddler = $tw.wiki.getTiddler(title);
+			if(tiddler.fields.component === self.componentName) {
+				$tw.wiki.deleteTiddler(title);
+			}
+		});
+		this.alertCount = 0;
 	}
 };
 

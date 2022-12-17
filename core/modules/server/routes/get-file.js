@@ -21,7 +21,11 @@ exports.handler = function(request,response,state) {
 		fs = require("fs"),
 		util = require("util"),
 		suppliedFilename = decodeURIComponent(state.params[0]),
+  <<<<<<< allow-filter-duplicates
+		filename = path.resolve($tw.boot.wikiPath,"files",suppliedFilename),
+  =======
 		filename = path.resolve(state.boot.wikiPath,"files",suppliedFilename),
+  >>>>>>> new-json-store-area
 		extension = path.extname(filename);
 	fs.readFile(filename,function(err,content) {
 		var status,content,type = "text/plain";
