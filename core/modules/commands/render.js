@@ -29,6 +29,25 @@ Render individual tiddlers and save the results to the specified files
 		if(this.params.length < 1) {
 			return "Missing tiddler filter";
 		}
+  <<<<<<< logging-improvements
+		var widgetNode = wiki.makeWidget(parser,{variables: variables}),
+			container = $tw.fakeDocument.createElement("div");
+		widgetNode.render(container,null);
+		var text = type === "text/html" ? container.innerHTML : container.textContent,
+			filepath = path.resolve(self.commander.outputPath,wiki.filterTiddlers(filenameFilter,$tw.rootWidget,wiki.makeTiddlerIterator([title]))[0]);
+		if(self.commander.verbose) {
+			self.commander.log("Rendering \"" + title + "\" to \"" + filepath + "\"");
+		}
+		$tw.utils.createFileDirectories(filepath);
+		fs.writeFileSync(filepath,text,"utf8");
+	});
+	return null;
+};
+
+exports.Command = Command;
+
+})();
+  =======
 		var self = this,
 			fs = require("fs"),
 			path = require("path"),
@@ -64,3 +83,4 @@ Render individual tiddlers and save the results to the specified files
 	
 	})();
 	
+  >>>>>>> wikitext-via-macros

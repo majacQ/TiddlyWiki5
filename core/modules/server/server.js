@@ -33,7 +33,13 @@ function Server(options) {
 	this.routes = options.routes || [];
 	this.authenticators = options.authenticators || [];
 	this.wiki = options.wiki;
+  <<<<<<< logging-improvements
+	this.servername = $tw.utils.transliterateToSafeASCII(this.wiki.getTiddlerText("$:/SiteTitle") || "TiddlyWiki5");
+	this.logger = new $tw.utils.Logger("server",{colour: "cyan"});
+	this.logger.setPrefix(":" + process.pid + "-" + (Number(new Date()) - 1095776640000));
+  =======
 	this.boot = options.boot || $tw.boot;
+ >>>>>>> wikitext-via-macros
 	// Initialise the variables
 	this.variables = $tw.utils.extend({},this.defaultVariables);
 	if(options.variables) {
@@ -282,9 +288,9 @@ Server.prototype.requestHandler = function(request,response,options) {
 	var route = self.findMatchingRoute(request,state);
 	// Optionally output debug info
 	if(self.get("debug-level") !== "none") {
-		console.log("Request path:",JSON.stringify(state.urlInfo));
-		console.log("Request headers:",JSON.stringify(request.headers));
-		console.log("authenticatedUsername:",state.authenticatedUsername);
+		self.logger.log("Request path:",JSON.stringify(state.urlInfo.href));
+		self.logger.log("Request headers:",JSON.stringify(request.headers));
+		self.logger.log("authenticatedUsername:",state.authenticatedUsername);
 	}
 	// Return a 404 if we didn't find a route
 	if(!route) {
@@ -338,6 +344,10 @@ Server.prototype.listen = function(port,host,prefix) {
 	if(parseInt(port,10).toString() !== port) {
 		port = process.env[port] || 8080;
 	}
+  <<<<<<< logging-improvements
+	this.logger.log("Serving on " + this.protocol + "://" + host + ":" + port,"(press ctrl-C to exit)");
+  =======
+  >>>>>>> wikitext-via-macros
 	// Warn if required plugins are missing
 	var missing = [];
 	for (var index=0; index<this.requiredPlugins.length; index++) {
