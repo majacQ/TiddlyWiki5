@@ -70,6 +70,9 @@ function FramedEngine(options) {
 	if(this.widget.editRows) {
 		this.domNode.setAttribute("rows",this.widget.editRows);
 	}
+	if(this.widget.editDir) {
+		this.domNode.setAttribute("dir",this.widget.editDir);
+	}
 	if(this.widget.editTabIndex) {
 		this.iframeNode.setAttribute("tabindex",this.widget.editTabIndex);
 	}
@@ -102,6 +105,12 @@ FramedEngine.prototype.copyStyles = function() {
 	this.domNode.style.display = "block";
 	this.domNode.style.width = "100%";
 	this.domNode.style.margin = "0";
+  <<<<<<< bidi-improvements
+	this.domNode.style["background-color"] = this.widget.wiki.extractTiddlerDataItem(this.widget.wiki.getTiddlerText("$:/palette"),"tiddler-editor-background");
+	this.domNode.style.direction = "";
+	this.domNode.style.unicodeBidi = "";
+  =======
+  >>>>>>> external-tasks
 	// In Chrome setting -webkit-text-fill-color overrides the placeholder text colour
 	this.domNode.style["-webkit-text-fill-color"] = "currentcolor";
 };

@@ -25,11 +25,18 @@ color:$(foregroundColor)$;
 <$macrocall $name="tag-body-inner" colour="""$colour$""" fallbackTarget={{$palette$##tag-background}} colourA={{$palette$##foreground}} colourB={{$palette$##background}} icon="""$icon$""" tagField=<<__tagField__>>/>
 \end
 
+  <<<<<<< bidi-improvements
+<div class="tc-edit-tags" dir={{$:/config/DefaultTextDirection}}>
+<$fieldmangler>
+<$list filter="[all[current]tags[]sort[title]]" storyview="pop">
+<$macrocall $name="tag-body" colour={{!!color}} palette={{$:/palette}} icon={{!!icon}}/>
+  =======
 \define edit-tags-template(tagField:"tags")
 \whitespace trim
 <div class="tc-edit-tags">
 <$list filter="[list[!!$tagField$]sort[title]]" storyview="pop">
 <$macrocall $name="tag-body" colour={{!!color}} palette={{$:/palette}} icon={{!!icon}} tagField=<<__tagField__>>/>
+  >>>>>>> external-tasks
 </$list>
 <$vars tabIndex={{$:/config/EditTabIndex}} cancelPopups="yes">
 <$macrocall $name="tag-picker" tagField=<<__tagField__>>/>

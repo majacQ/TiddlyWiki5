@@ -48,16 +48,33 @@ EditWidget.prototype.execute = function() {
 	this.editPlaceholder = this.getAttribute("placeholder");
 	this.editTabIndex = this.getAttribute("tabindex");
 	this.editFocus = this.getAttribute("focus","");
+  <<<<<<< bidi-improvements
+	this.editDir = this.getAttribute("dir");
+  =======
 	this.editCancelPopups = this.getAttribute("cancelPopups","");
 	this.editInputActions = this.getAttribute("inputActions");
 	this.editRefreshTitle = this.getAttribute("refreshTitle");
 	this.editAutoComplete = this.getAttribute("autocomplete");
+  >>>>>>> external-tasks
 	// Choose the appropriate edit widget
 	this.editorType = this.getEditorType();
 	// Make the child widgets
 	this.makeChildWidgets([{
 		type: "edit-" + this.editorType,
+  <<<<<<< bidi-improvements
+		attributes: {
+			tiddler: {type: "string", value: this.editTitle},
+			field: {type: "string", value: this.editField},
+			index: {type: "string", value: this.editIndex},
+			"class": {type: "string", value: this.editClass},
+			"placeholder": {type: "string", value: this.editPlaceholder},
+			"tabindex": {type: "string", value: this.editTabIndex},
+			"focus": {type: "string", value: this.editFocus},
+			dir: {type: "string", value: this.editDir}
+		},
+  =======
 		attributes: this.parseTreeNode.attributes,
+  >>>>>>> external-tasks
 		children: this.parseTreeNode.children
 	}]);
 };
@@ -90,7 +107,11 @@ Selectively refreshes the widget if needed. Returns true if the widget or any of
 EditWidget.prototype.refresh = function(changedTiddlers) {
 	var changedAttributes = this.computeAttributes();
 	// Refresh if an attribute has changed, or the type associated with the target tiddler has changed
+  <<<<<<< bidi-improvements
+	if(changedAttributes.tiddler || changedAttributes.field || changedAttributes.index || changedAttributes.tabindex || changedAttributes.dir || (changedTiddlers[this.editTitle] && this.getEditorType() !== this.editorType)) {
+  =======
 	if(changedAttributes.tiddler || changedAttributes.field || changedAttributes.index || changedAttributes.tabindex || changedAttributes.cancelPopups || changedAttributes.inputActions || changedAttributes.refreshTitle || changedAttributes.autocomplete || (changedTiddlers[this.editTitle] && this.getEditorType() !== this.editorType)) {
+  >>>>>>> external-tasks
 		this.refreshSelf();
 		return true;
 	} else {
